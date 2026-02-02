@@ -3,7 +3,11 @@
   "name": "VoiceMux Bridge",
   "version": "1.3",
   "description": "VoiceMux Pairing with QR Code and Custom Adapters",
-  "permissions": ["activeTab", "scripting", "storage"],
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
   "host_permissions": [
     "http://localhost:4000/*",
     "https://gemini.google.com/*",
@@ -13,7 +17,10 @@
     "wss://voice.kaneta.net/*"
   ],
   "action": {
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "128": "icon128.png"
+    }
   },
   "options_page": "options.html",
   "background": {
@@ -32,7 +39,12 @@
         "https://treenoteweb.pages.dev/*",
         "<all_urls>"
       ],
-      "js": ["content.js"]
+      "js": [
+        "content.js"
+      ]
     }
-  ]
+  ],
+  "icons": {
+    "128": "icon128.png"
+  }
 }
