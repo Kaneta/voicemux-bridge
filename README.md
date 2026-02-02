@@ -2,24 +2,25 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**VoiceMux Bridge** is a Chrome extension that turns your smartphone into a secure, E2EE-encrypted remote keyboard for AI agents (Gemini, ChatGPT, Claude, etc.).
+**VoiceMux Bridge** is the open-source Chrome extension for the VoiceMux ecosystem. It turns your smartphone into a secure, E2EE-encrypted remote keyboard for AI agents (Gemini, ChatGPT, Claude, etc.).
 
 ## 🔐 Security & Privacy (E2EE)
 This extension features true Client-Side End-to-End Encryption (E2EE).
-- **Local Key Generation**: Your encryption keys are generated locally within the extension and stored in `chrome.storage.local`.
-- **Zero-Knowledge**: Keys are never transmitted to the server. They are shared with your mobile device via URL hash fragments (`#key=...`), which are not sent to the server by design.
-- **Auditable**: All encryption and decryption logic is contained within `content.js` and `background.js` and is open for public audit.
+- **Zero-Knowledge**: Your encryption keys (AES-GCM 256-bit) are generated locally and stored in `chrome.storage.local`. They never touch the server.
+- **Hash-based Key Exchange**: Keys are shared with your mobile device via URL hash fragments (`#key=...`), which are handled exclusively by the browser and never transmitted over the network to the server.
+- **Auditable**: All security logic is open for public audit in this repository.
 
-## 🚀 How to Use
-1. Install the extension.
-2. Click the extension icon to reveal the pairing QR code.
-3. Scan the QR code with your mobile device to establish a secure link.
-4. Start typing or using voice-to-text on your phone; it will appear instantly on your PC.
+## 🚀 Features
+- **One-Tap Pairing**: Click the extension icon to show a QR code for instant, secure pairing.
+- **Atomic Submit**: Bundles text injection and send actions to ensure reliability even on complex React-based SPAs.
+- **Custom Site Adapters**: Add support for any website by defining your own CSS selectors in the Extension Options page.
+- **Universal Compatibility**: Falls back to the active element if no specific site adapter matches.
 
-## 🛠️ Custom Site Adapters
-You can add support for any website by defining custom CSS selectors in the Extension Options page.
-1. Right-click the VoiceMux icon and select **Options**.
-2. Paste your custom JSON configuration.
+## 🛠️ How to Install (Developer Mode)
+1. Clone this repository.
+2. Open `chrome://extensions/` in Chrome.
+3. Enable "Developer mode".
+4. Click "Load unpacked" and select the `voicemux-bridge` folder.
 
 ## 📄 License
 MIT License - see the [LICENSE](LICENSE) file for details.
