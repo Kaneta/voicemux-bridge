@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "VoiceMux Bridge",
+  "version": "1.3",
+  "description": "VoiceMux Pairing with QR Code and Custom Adapters",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": [
+    "http://localhost:4000/*",
+    "https://gemini.google.com/*",
+    "https://*.fly.dev/*",
+    "wss://*.fly.dev/*",
+    "https://voice.kaneta.net/*",
+    "wss://voice.kaneta.net/*"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "options_page": "options.html",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://gemini.google.com/*",
+        "https://chatgpt.com/*",
+        "https://claude.ai/*",
+        "https://app.slack.com/*",
+        "https://*.slack.com/*",
+        "https://www.perplexity.ai/*",
+        "https://notebooklm.google.com/*",
+        "https://treenoteweb.pages.dev/*",
+        "<all_urls>"
+      ],
+      "js": ["content.js"]
+    }
+  ]
+}
