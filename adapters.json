@@ -40,5 +40,12 @@
     "host": "mail.google.com",
     "inputSelector": "div[role='textbox'][contenteditable='true']",
     "submitSelector": null
+  },
+  {
+    "id": "deepl",
+    "name": "DeepL",
+    "host": "deepl.com",
+    "inputSelector": "div[contenteditable='true'], d-textarea",
+    "submitSelector": null
   }
 ]
