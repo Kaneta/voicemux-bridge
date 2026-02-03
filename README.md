@@ -14,6 +14,7 @@ This extension features true Client-Side End-to-End Encryption (E2EE).
 - **One-Tap Pairing**: Click the extension icon to show a QR code for instant, secure pairing.
 - **Atomic Submit**: Bundles text injection and send actions to ensure reliability even on complex React-based SPAs.
 - **Custom Site Adapters**: Add support for any website by defining your own CSS selectors in the Extension Options page.
+- **Community Catalog**: Access pre-made configurations for Outlook, Slack, Notion, and more via our [Community Adapters Catalog](community-adapters.md).
 - **Universal Compatibility**: Falls back to the active element if no specific site adapter matches.
 
 ## 🛠️ How to Install (Developer Mode)
