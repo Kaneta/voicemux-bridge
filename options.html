@@ -63,8 +63,8 @@
   {
     "name": "Custom App",
     "host": "example.com",
-    "selectors": [".my-input"],
-    "sendBtns": [".my-send-button"]
+    "inputSelector": ".my-input",
+    "submitSelector": ".my-send-button"
   }
 ]'></textarea>
 
@@ -73,7 +73,7 @@
 
     <div style="margin-top: 32px; font-size: 12px; color: #94a3b8;">
       <strong>Example Structure:</strong><br>
-      <code>[{"name": "Slack", "host": "slack.com", "selectors": [".ql-editor"], "sendBtns": ["button.c-button-unstyled"]}]</code>
+      <code>[{"name": "Slack", "host": "slack.com", "inputSelector": ".ql-editor", "submitSelector": "button.c-button-unstyled"}]</code>
     </div>
   </div>
   <script src="options.js"></script>

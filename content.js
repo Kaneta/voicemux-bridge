@@ -1,82 +1,74 @@
-// VoiceMux Bridge Content Script v2.4 (Custom Adapters Support)
-console.log("VoiceMux Bridge v2.4 Loaded");
+// VoiceMux Bridge Content Script v2.5 (External JSON Adapters)
+console.log("VoiceMux Bridge v2.5 Loaded");
 
-const SITE_ADAPTERS = [
-  {
-    name: 'gemini',
-    match: (url) => url.includes("gemini.google.com"),
-    selectors: ['div[contenteditable="true"]', '.rich-textarea', 'div[role="textbox"]'],
-    sendBtns: ['button[aria-label*="送信"]', 'button[aria-label*="Send"]', 'button.send-button', () => document.querySelector('span.material-symbols-outlined')?.closest('button')]
-  },
-  {
-    name: 'chatgpt',
-    match: (url) => url.includes("chatgpt.com"),
-    selectors: ['#prompt-textarea'],
-    sendBtns: ['button[data-testid="send-button"]']
-  },
-  {
-    name: 'claude',
-    match: (url) => url.includes("claude.ai"),
-    selectors: ['div[contenteditable="true"]'],
-    sendBtns: ['button[aria-label*="Send"]', 'button[aria-label*="送信"]']
-  },
-  {
-    name: 'perplexity',
-    match: (url) => url.includes("perplexity.ai"),
-    selectors: ['textarea'],
-    sendBtns: ['button[aria-label*="Submit"]', 'button[aria-label*="Ask"]']
-  },
-  {
-    name: 'treenote',
-    match: (url) => url.includes("treenoteweb.pages.dev"),
-    selectors: ['textarea.auto-resize-textarea', 'textarea', 'div[contenteditable="true"]'],
-    sendBtns: ['button.submit-btn']
-  },
-  {
-    name: 'fallback',
-    match: () => true,
-    selectors: [() => document.activeElement],
-    sendBtns: []
+let ADAPTERS_CACHE = [];
+
+// ★ Initialize Adapters
+async function loadAdapters() {
+  try {
+    // 1. Fetch Built-in Adapters
+    const builtInUrl = chrome.runtime.getURL('adapters.json');
+    const builtInRes = await fetch(builtInUrl);
+    const builtInAdapters = await builtInRes.json();
+
+    // 2. Fetch Custom Adapters from storage
+    const storage = await chrome.storage.local.get('custom_adapters');
+    const customAdapters = storage.custom_adapters || [];
+
+    // 3. Normalize & Merge (Custom takes precedence)
+    // Map legacy custom format if necessary, or assume new format
+    const normalizedCustom = customAdapters.map(a => ({
+      name: a.name || "Custom",
+      host: a.host,
+      inputSelector: a.inputSelector || (Array.isArray(a.selectors) ? a.selectors.join(',') : a.selectors),
+      submitSelector: a.submitSelector || (Array.isArray(a.sendBtns) ? a.sendBtns.join(',') : a.sendBtns)
+    }));
+
+    ADAPTERS_CACHE = [...normalizedCustom, ...builtInAdapters];
+    console.log("VoiceMux: Adapters loaded", ADAPTERS_CACHE);
+
+  } catch (e) {
+    console.error("VoiceMux: Failed to load adapters", e);
+    // Continue with empty cache, relying on fallback
   }
-];
+}
 
-// ★ Merged Target Selection (Custom > Hardcoded > Fallback)
+// Start loading immediately
+loadAdapters();
+
+// ★ Target Selection
 async function getTargetAndAdapter() {
   const url = window.location.href;
   
-  // 1. Fetch Custom Adapters from storage
-  const storage = await chrome.storage.local.get('custom_adapters');
-  const customAdapters = storage.custom_adapters || [];
+  // Wait for adapters if not loaded (rare case, but safe)
+  if (ADAPTERS_CACHE.length === 0) await loadAdapters();
 
-  // Try Custom Adapters first
-  for (const a of customAdapters) {
-    if (a.host && url.includes(a.host)) {
-      const el = findElement(a.selectors);
-      if (el) return { target: el, adapter: a };
+  // 1. Try to find a matching adapter
+  for (const adapter of ADAPTERS_CACHE) {
+    if (adapter.host && url.includes(adapter.host)) {
+      const el = document.querySelector(adapter.inputSelector);
+      if (el) return { target: el, adapter: adapter };
     }
   }
 
-  // 2. Try Hardcoded Adapters
-  const specificAdapter = SITE_ADAPTERS.find(a => a.match(url) && a.name !== 'fallback');
-  if (specificAdapter) {
-    const el = findElement(specificAdapter.selectors);
-    if (el) return { target: el, adapter: specificAdapter };
+  // 2. Fallback: Active Element
+  if (document.activeElement && 
+      (document.activeElement.isContentEditable || 
+       document.activeElement.tagName === 'TEXTAREA' || 
+       document.activeElement.tagName === 'INPUT')) {
+    return { 
+      target: document.activeElement, 
+      adapter: { name: 'fallback' } 
+    };
   }
 
-  // 3. Fallback to active element
-  const fallbackAdapter = SITE_ADAPTERS.find(a => a.name === 'fallback');
-  const activeEl = findElement(fallbackAdapter.selectors);
+  // 3. Last Resort: Find first textarea or contenteditable
+  const firstInput = document.querySelector('textarea, div[contenteditable="true"]');
+  if (firstInput) {
+      return { target: firstInput, adapter: { name: 'last-resort' } };
+  }
   
-  return { target: activeEl, adapter: fallbackAdapter };
-}
-
-function findElement(selectors) {
-  if (!selectors) return null;
-  for (const sel of selectors) {
-    let el = (typeof sel === 'function') ? sel() : document.querySelector(sel);
-    if (el) return el;
-  }
-  return null;
+  return { target: null, adapter: null };
 }
 
 // Crypto Helpers
@@ -105,16 +97,26 @@ async function decrypt(payload) {
 function forceInject(element, text) {
   if (!element) return;
   element.focus();
-  if (element.isContentEditable) {
-    if (element.innerText !== text) element.innerText = text;
-    element.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
-  } else if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
+  
+  // React Hack: Call native value setter to bypass React's state tracking
+  if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
     const proto = element.tagName === 'INPUT' ? window.HTMLInputElement.prototype : window.HTMLTextAreaElement.prototype;
     const nativeSetter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
-    if (nativeSetter) nativeSetter.call(element, text);
-    else element.value = text;
-    element.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+    
+    if (nativeSetter) {
+        nativeSetter.call(element, text);
+    } else {
+        element.value = text;
+    }
+  } else {
+      // ContentEditable
+      element.innerText = text;
   }
+
+  // Dispatch events to trigger UI updates (enable send buttons etc)
+  element.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
+  element.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+  
   moveCursorToEnd(element);
 }
 
@@ -143,7 +145,11 @@ function triggerEnter(target) {
 // Message Listener
 chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   const { target, adapter } = await getTargetAndAdapter();
-  if (!target) return;
+  
+  if (!target) {
+      console.warn("VoiceMux: No suitable input target found.");
+      return;
+  }
 
   const plaintext = await decrypt(request.payload);
 
@@ -151,10 +157,20 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     forceInject(target, plaintext);
   } else if (request.action === "confirm_send") {
     forceInject(target, plaintext);
+    
     setTimeout(() => {
-        const btn = findElement(adapter.sendBtns);
-        if (btn && !btn.disabled && typeof btn.click === 'function') btn.click();
-        else triggerEnter(target);
+        // Try to find submit button via selector
+        let btn = null;
+        if (adapter && adapter.submitSelector) {
+            btn = document.querySelector(adapter.submitSelector);
+        }
+
+        if (btn && !btn.disabled) {
+            btn.click();
+        } else {
+            // Fallback: Press Enter
+            triggerEnter(target);
+        }
     }, 100);
   }
 });

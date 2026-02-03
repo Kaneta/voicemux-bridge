@@ -1,0 +1,37 @@
+[
+  {
+    "id": "gemini",
+    "name": "Google Gemini",
+    "host": "gemini.google.com",
+    "inputSelector": "div[contenteditable='true'], .rich-textarea, div[role='textbox']",
+    "submitSelector": "button[aria-label*='送信'], button[aria-label*='Send'], button.send-button, button:has(span.material-symbols-outlined)"
+  },
+  {
+    "id": "chatgpt",
+    "name": "ChatGPT",
+    "host": "chatgpt.com",
+    "inputSelector": "#prompt-textarea",
+    "submitSelector": "button[data-testid='send-button']"
+  },
+  {
+    "id": "claude",
+    "name": "Claude",
+    "host": "claude.ai",
+    "inputSelector": "div[contenteditable='true']",
+    "submitSelector": "button[aria-label*='Send'], button[aria-label*='送信']"
+  },
+  {
+    "id": "perplexity",
+    "name": "Perplexity",
+    "host": "perplexity.ai",
+    "inputSelector": "textarea",
+    "submitSelector": "button[aria-label*='Submit'], button[aria-label*='Ask']"
+  },
+  {
+    "id": "treenote",
+    "name": "Treenote",
+    "host": "treenoteweb.pages.dev",
+    "inputSelector": "textarea.auto-resize-textarea, textarea, div[contenteditable='true']",
+    "submitSelector": "button.submit-btn"
+  }
+]
