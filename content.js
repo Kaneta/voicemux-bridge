@@ -16,12 +16,11 @@ async function loadAdapters() {
     const customAdapters = storage.custom_adapters || [];
 
     // 3. Normalize & Merge (Custom takes precedence)
-    // Map legacy custom format if necessary, or assume new format
     const normalizedCustom = customAdapters.map(a => ({
       name: a.name || "Custom",
       host: a.host,
-      inputSelector: a.inputSelector || (Array.isArray(a.selectors) ? a.selectors.join(',') : a.selectors),
-      submitSelector: a.submitSelector || (Array.isArray(a.sendBtns) ? a.sendBtns.join(',') : a.sendBtns)
+      inputSelector: a.inputSelector ?? (Array.isArray(a.selectors) ? a.selectors.join(',') : a.selectors),
+      submitSelector: a.submitSelector ?? (Array.isArray(a.sendBtns) ? a.sendBtns.join(',') : a.sendBtns)
     }));
 
     ADAPTERS_CACHE = [...normalizedCustom, ...builtInAdapters];
