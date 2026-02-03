@@ -33,5 +33,12 @@
     "host": "treenoteweb.pages.dev",
     "inputSelector": "textarea.auto-resize-textarea, textarea, div[contenteditable='true']",
     "submitSelector": "button.submit-btn"
+  },
+  {
+    "id": "gmail",
+    "name": "Gmail",
+    "host": "mail.google.com",
+    "inputSelector": "div[role='textbox'][contenteditable='true']",
+    "submitSelector": null
   }
 ]

@@ -159,12 +159,19 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     forceInject(target, plaintext);
     
     setTimeout(() => {
-        // Try to find submit button via selector
+        // Case 1: Explicitly set to not submit (null)
+        if (adapter && adapter.submitSelector === null) {
+            console.log("VoiceMux: Submit skipped (configured as null).");
+            return;
+        }
+
+        // Case 2: Try to find submit button via selector
         let btn = null;
         if (adapter && adapter.submitSelector) {
             btn = document.querySelector(adapter.submitSelector);
         }
 
+        // Case 3: Click if found, otherwise fallback to Enter
         if (btn && !btn.disabled) {
             btn.click();
         } else {
