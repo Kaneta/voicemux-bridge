@@ -1,20 +1,17 @@
 {
   "manifest_version": 3,
   "name": "VoiceMux Bridge",
-  "version": "1.3",
+  "version": "1.3.2",
   "description": "VoiceMux Pairing with QR Code and Custom Adapters",
   "permissions": [
     "activeTab",
-    "scripting",
     "storage"
   ],
   "host_permissions": [
     "http://localhost:4000/*",
     "https://gemini.google.com/*",
     "https://*.fly.dev/*",
-    "wss://*.fly.dev/*",
-    "https://voice.kaneta.net/*",
-    "wss://voice.kaneta.net/*"
+    "https://voice.kaneta.net/*"
   ],
   "action": {
     "default_popup": "popup.html",

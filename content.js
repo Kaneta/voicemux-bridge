@@ -39,26 +39,25 @@ loadAdapters();
 async function getTargetAndAdapter() {
   const url = window.location.href;
   
-  // Wait for adapters if not loaded (rare case, but safe)
+  // Wait for adapters if not loaded
   if (ADAPTERS_CACHE.length === 0) await loadAdapters();
 
-  // 1. Try to find a matching adapter
-  for (const adapter of ADAPTERS_CACHE) {
-    if (adapter.host && url.includes(adapter.host)) {
-      const el = document.querySelector(adapter.inputSelector);
-      if (el) return { target: el, adapter: adapter };
-    }
+  // Find matching adapter for this host
+  const adapter = ADAPTERS_CACHE.find(a => a.host && url.includes(a.host));
+
+  // 1. Highest Priority: Active Element (If it's an input/editable)
+  const active = document.activeElement;
+  if (active && 
+      (active.isContentEditable || 
+       active.tagName === 'TEXTAREA' || 
+       (active.tagName === 'INPUT' && !['checkbox', 'radio', 'button', 'submit'].includes(active.type)))) {
+    return { target: active, adapter: adapter || { name: 'active-element' } };
   }
 
-  // 2. Fallback: Active Element
-  if (document.activeElement && 
-      (document.activeElement.isContentEditable || 
-       document.activeElement.tagName === 'TEXTAREA' || 
-       document.activeElement.tagName === 'INPUT')) {
-    return { 
-      target: document.activeElement, 
-      adapter: { name: 'fallback' } 
-    };
+  // 2. Secondary: Try to find a matching element via Adapter selector
+  if (adapter) {
+    const el = document.querySelector(adapter.inputSelector);
+    if (el) return { target: el, adapter: adapter };
   }
 
   // 3. Last Resort: Find first textarea or contenteditable

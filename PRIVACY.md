@@ -12,7 +12,7 @@ All data transmitted from your mobile device to this extension is encrypted usin
 
 ## 3. Permissions
 The extension requires the following permissions to function:
-- **activeTab / scripting**: Used only to inject text into the input field of the website you are currently using, and only upon your explicit request via the paired mobile device.
+- **activeTab**: Used only to inject text into the input field of the website you are currently using, and only upon your explicit request via the paired mobile device.
 - **storage**: Used to save your local configuration, including your unique Room ID, encryption key, and any Custom Site Adapters you define.
 
 ## 4. Third-Party Services
