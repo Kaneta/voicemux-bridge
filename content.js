@@ -4,6 +4,7 @@ console.log("VoiceMux Bridge v2.5 Loaded");
 let ADAPTERS_CACHE = [];
 
 // ★ Initialize Adapters
+/** Fetches and merges built-in and custom site adapters into a local cache. */
 async function loadAdapters() {
   try {
     // 1. Fetch Built-in Adapters
@@ -36,6 +37,7 @@ async function loadAdapters() {
 loadAdapters();
 
 // ★ Target Selection
+/** Identifies the best input element and its corresponding adapter for the current page context. */
 async function getTargetAndAdapter() {
   const url = window.location.href;
   
@@ -70,6 +72,7 @@ async function getTargetAndAdapter() {
 }
 
 // Crypto Helpers
+/** Imports the raw AES-GCM decryption key from storage. */
 async function getDecryptionKey() {
   const data = await chrome.storage.local.get('voicemux_key');
   if (!data.voicemux_key) return null;
@@ -77,6 +80,7 @@ async function getDecryptionKey() {
   return await crypto.subtle.importKey("raw", rawKey, "AES-GCM", true, ["decrypt"]);
 }
 
+/** Decrypts the received payload (ciphertext/iv) and returns plaintext string. */
 async function decrypt(payload) {
   if (!payload.ciphertext || !payload.iv) return payload.text || "";
   try {
@@ -92,6 +96,7 @@ async function decrypt(payload) {
   }
 }
 
+/** Injects text into a target element, bypassing React's internal state tracking. */
 function forceInject(element, text) {
   if (!element) return;
   element.focus();
@@ -118,6 +123,7 @@ function forceInject(element, text) {
   moveCursorToEnd(element);
 }
 
+/** Positions the text cursor at the end of the input or contenteditable element. */
 function moveCursorToEnd(element) {
   if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
     element.selectionStart = element.selectionEnd = element.value.length;
@@ -133,6 +139,7 @@ function moveCursorToEnd(element) {
   }
 }
 
+/** Dispatches a sequence of Enter key events to the target element to trigger submission. */
 function triggerEnter(target) {
     const opts = { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true, composed: true, view: window };
     target.dispatchEvent(new KeyboardEvent('keydown', opts));
@@ -180,6 +187,7 @@ chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
   }
 });
 
+/** Signals the background script to check or re-establish the WebSocket connection. */
 function safeCheckConnection() {
   if (chrome.runtime?.id) {
     chrome.runtime.sendMessage({ action: "check_connection" }).catch(() => {});

@@ -8,6 +8,7 @@ let retryDelay = 1000;
 const MAX_RETRY_DELAY = 60000;
 
 // ★ Room & Key Management
+/** Retrieves or generates E2EE Room ID and AES-GCM key from local storage. */
 async function getOrCreateSecrets() {
   const data = await chrome.storage.local.get(['voicemux_room_id', 'voicemux_key']);
   
@@ -34,6 +35,7 @@ async function getOrCreateSecrets() {
   return { roomId, keyBase64 };
 }
 
+/** Initializes WebSocket connection to the relay server and sets up heartbeat/reconnection logic. */
 async function connect() {
   if (socket && (socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN)) {
     return;
@@ -93,6 +95,7 @@ async function connect() {
   };
 }
 
+/** Clears heartbeat intervals and timers to prevent memory leaks during disconnection. */
 function cleanup() {
   if (heartbeatInterval) clearInterval(heartbeatInterval);
   heartbeatInterval = null;
