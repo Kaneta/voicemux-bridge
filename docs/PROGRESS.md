@@ -1,9 +1,15 @@
 ## 2026-02-08
+### Changed
+- **Strict Token Enforcement:**
+    - Removed fallback logic for unsecured connections in `background.js`.
+    - If token fetching fails, the extension will retry with exponential backoff instead of connecting insecurely.
+    - Updated URL construction to always mandate the `token` parameter.
+
 ### Added
 - **Phoenix Token Authentication Implementation:**
     - Updated `background.js` to automatically fetch a signed token from `/api/auth` before connecting to the WebSocket.
     - Updated `popup.js` to include the auth token in the generated QR code (Pairing URL).
-    - This enhances server security by preventing unauthorized WebSocket connections while maintaining backward compatibility.
+    - This enhances server security by preventing unauthorized WebSocket connections.
 
 ## 2026-02-06
 ### Fixed
@@ -21,9 +27,9 @@
     - Added `docs/AGENTS.md` (Architecture), `docs/PROGRESS.md` (Log), and `docs/ADR_TEMPLATE.md`.
 
 ## Current Status
-- **Version:** 1.4.0 (Auth Enhanced)
-- **Stability:** Stable. Implemented token-based authentication.
+- **Version:** 1.4.0 (Auth Enforced)
+- **Stability:** Stable. Strict token authentication enabled.
 
 ## Next Tasks
 - [ ] Submit version 1.4.0 to the Chrome Web Store.
-- [ ] Verify token-based connection against the production server.
+- [ ] Verify functionality with the new stricter logic.
