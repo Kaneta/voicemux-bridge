@@ -38,16 +38,11 @@ async function getOrCreateSecrets() {
 
 /** Fetches a connection token from the server. */
 async function fetchToken(roomId) {
-  try {
-    const response = await fetch(`${AUTH_URL}?room=${roomId}`);
-    if (!response.ok) throw new Error(`Auth failed: ${response.status}`);
-    const data = await response.json();
-    await chrome.storage.local.set({ 'voicemux_token': data.token });
-    return data.token;
-  } catch (error) {
-    console.warn("VoiceMux: Token fetch failed, falling back to unsecured.", error);
-    return null;
-  }
+  const response = await fetch(`${AUTH_URL}?room=${roomId}`);
+  if (!response.ok) throw new Error(`Auth failed: ${response.status}`);
+  const data = await response.json();
+  await chrome.storage.local.set({ 'voicemux_token': data.token });
+  return data.token;
 }
 
 /** Initializes WebSocket connection to the relay server and sets up heartbeat/reconnection logic. */
@@ -56,65 +51,72 @@ async function connect() {
     return;
   }
 
-  const { roomId, keyBase64 } = await getOrCreateSecrets();
-  const token = await fetchToken(roomId);
-  const currentTopic = `voice_input:${roomId}`;
+  try {
+    const { roomId, keyBase64 } = await getOrCreateSecrets();
+    const token = await fetchToken(roomId);
+    const currentTopic = `voice_input:${roomId}`;
 
-  console.log(`VoiceMux: Connecting... | Room: ${roomId}`);
-  
-  // Construct WebSocket URL with parameters
-  let wsUrl = `${BASE_WS_URL}?vsn=2.0.0&room=${roomId}`;
-  if (token) {
-    wsUrl += `&token=${token}`;
-  }
-
-  socket = new WebSocket(wsUrl);
-
-  socket.onopen = () => {
-    console.log("VoiceMux: Connected");
-    console.log(`E2EE Pairing URL: https://voice.kaneta.net/?room=${roomId}${token ? `&token=${token}` : ""}#key=${keyBase64}`);
-
-    retryDelay = 1000;
-    socket.send(JSON.stringify(["1", "1", currentTopic, "phx_join", {}]));
+    console.log(`VoiceMux: Connecting... | Room: ${roomId}`);
     
-    if (heartbeatInterval) clearInterval(heartbeatInterval);
-    heartbeatInterval = setInterval(() => {
-      if (socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify([null, "heartbeat", "phoenix", "heartbeat", {}]));
+    // Construct WebSocket URL with parameters (token is now mandatory)
+    const wsUrl = `${BASE_WS_URL}?vsn=2.0.0&room=${roomId}&token=${token}`;
+
+    socket = new WebSocket(wsUrl);
+
+    socket.onopen = () => {
+      console.log("VoiceMux: Connected (Secure)");
+      console.log(`E2EE Pairing URL: https://voice.kaneta.net/?room=${roomId}&token=${token}#key=${keyBase64}`);
+
+      retryDelay = 1000;
+      socket.send(JSON.stringify(["1", "1", currentTopic, "phx_join", {}]));
+      
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
+      heartbeatInterval = setInterval(() => {
+        if (socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify([null, "heartbeat", "phoenix", "heartbeat", {}]));
+        }
+      }, 30000);
+    };
+
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      const msgTopic = data[2];
+      const eventName = data[3];
+      const payload = data[4];
+
+      if (msgTopic === currentTopic) {
+        if (eventName === "update_text" || eventName === "confirm_send") {
+          chrome.tabs.query({active: true, lastFocusedWindow: true}, (tabs) => {
+            if (tabs[0]) {
+               chrome.tabs.sendMessage(tabs[0].id, {
+                action: eventName,
+                payload: payload // 暗号化されたデータ（ciphertext, iv等）を丸ごと送る
+              }).catch(() => {});
+            }
+          });
+        }
       }
-    }, 30000);
-  };
+    };
 
-  socket.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    const msgTopic = data[2];
-    const eventName = data[3];
-    const payload = data[4];
+    socket.onclose = () => {
+      cleanup();
+      scheduleReconnect();
+    };
 
-    if (msgTopic === currentTopic) {
-      if (eventName === "update_text" || eventName === "confirm_send") {
-        chrome.tabs.query({active: true, lastFocusedWindow: true}, (tabs) => {
-          if (tabs[0]) {
-             chrome.tabs.sendMessage(tabs[0].id, {
-              action: eventName,
-              payload: payload // 暗号化されたデータ（ciphertext, iv等）を丸ごと送る
-            }).catch(() => {});
-          }
-        });
-      }
-    }
-  };
+    socket.onerror = (err) => {
+      socket.close();
+    };
+  } catch (error) {
+    console.error("VoiceMux: Connection failed:", error);
+    scheduleReconnect();
+  }
+}
 
-  socket.onclose = () => {
-    cleanup();
-    if (retryTimer) clearTimeout(retryTimer);
-    retryTimer = setTimeout(connect, retryDelay);
-    retryDelay = Math.min(retryDelay * 2, MAX_RETRY_DELAY);
-  };
-
-  socket.onerror = (err) => {
-    socket.close();
-  };
+/** Schedules a reconnection attempt with exponential backoff. */
+function scheduleReconnect() {
+  if (retryTimer) clearTimeout(retryTimer);
+  retryTimer = setTimeout(connect, retryDelay);
+  retryDelay = Math.min(retryDelay * 2, MAX_RETRY_DELAY);
 }
 
 /** Clears heartbeat intervals and timers to prevent memory leaks during disconnection. */
