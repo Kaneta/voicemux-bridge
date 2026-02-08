@@ -1,5 +1,6 @@
 // Configuration
-const WS_URL = "wss://voice.kaneta.net/socket/websocket?vsn=2.0.0";
+const BASE_WS_URL = "wss://voice.kaneta.net/socket/websocket";
+const AUTH_URL = "https://voice.kaneta.net/api/auth";
 
 let socket = null;
 let heartbeatInterval = null;
@@ -35,6 +36,20 @@ async function getOrCreateSecrets() {
   return { roomId, keyBase64 };
 }
 
+/** Fetches a connection token from the server. */
+async function fetchToken(roomId) {
+  try {
+    const response = await fetch(`${AUTH_URL}?room=${roomId}`);
+    if (!response.ok) throw new Error(`Auth failed: ${response.status}`);
+    const data = await response.json();
+    await chrome.storage.local.set({ 'voicemux_token': data.token });
+    return data.token;
+  } catch (error) {
+    console.warn("VoiceMux: Token fetch failed, falling back to unsecured.", error);
+    return null;
+  }
+}
+
 /** Initializes WebSocket connection to the relay server and sets up heartbeat/reconnection logic. */
 async function connect() {
   if (socket && (socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN)) {
@@ -42,15 +57,22 @@ async function connect() {
   }
 
   const { roomId, keyBase64 } = await getOrCreateSecrets();
+  const token = await fetchToken(roomId);
   const currentTopic = `voice_input:${roomId}`;
 
   console.log(`VoiceMux: Connecting... | Room: ${roomId}`);
   
-  socket = new WebSocket(WS_URL);
+  // Construct WebSocket URL with parameters
+  let wsUrl = `${BASE_WS_URL}?vsn=2.0.0&room=${roomId}`;
+  if (token) {
+    wsUrl += `&token=${token}`;
+  }
+
+  socket = new WebSocket(wsUrl);
 
   socket.onopen = () => {
     console.log("VoiceMux: Connected");
-    console.log(`E2EE Pairing URL: https://voice.kaneta.net/?room=${roomId}#key=${keyBase64}`);
+    console.log(`E2EE Pairing URL: https://voice.kaneta.net/?room=${roomId}${token ? `&token=${token}` : ""}#key=${keyBase64}`);
 
     retryDelay = 1000;
     socket.send(JSON.stringify(["1", "1", currentTopic, "phx_join", {}]));

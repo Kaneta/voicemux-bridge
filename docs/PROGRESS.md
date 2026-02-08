@@ -1,4 +1,9 @@
-# Development Progress Log
+## 2026-02-08
+### Added
+- **Phoenix Token Authentication Implementation:**
+    - Updated `background.js` to automatically fetch a signed token from `/api/auth` before connecting to the WebSocket.
+    - Updated `popup.js` to include the auth token in the generated QR code (Pairing URL).
+    - This enhances server security by preventing unauthorized WebSocket connections while maintaining backward compatibility.
 
 ## 2026-02-06
 ### Fixed
@@ -16,10 +21,9 @@
     - Added `docs/AGENTS.md` (Architecture), `docs/PROGRESS.md` (Log), and `docs/ADR_TEMPLATE.md`.
 
 ## Current Status
-- **Version:** 1.3.2
-- **Stability:** Stable. Ready for store submission.
+- **Version:** 1.4.0 (Auth Enhanced)
+- **Stability:** Stable. Implemented token-based authentication.
 
 ## Next Tasks
-- [ ] Verify Treenoteweb fix in a live environment if possible.
-- [ ] Submit version 1.3.2 to the Chrome Web Store.
-- [ ] Consider adding unit tests for `content.js` adapter logic.
+- [ ] Submit version 1.4.0 to the Chrome Web Store.
+- [ ] Verify token-based connection against the production server.
