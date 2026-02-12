@@ -19,8 +19,8 @@
     - Output file changed to `full_context.txt` in the project root.
     - Integrated `gen_map.sh` for automatic codebase mapping in context collection.
 - **Git Hygiene Management:**
-    - Moved AI-specific ignore patterns (`full_context.txt`, `project_map.md`) from `.gitignore` to `.git/info/exclude`.
-    - This ensures the public `.gitignore` remains clean and professional for GitHub while maintaining local AI workflow.
+    - Moved all AI-specific helper scripts (`collect_context.sh`, `gen_map.sh`) and ignore patterns (`full_context.txt`, `project_map.md`) from `.gitignore` to `.git/info/exclude`.
+    - This ensures the public repository is completely free of AI-specific toolchain artifacts while maintaining local productivity.
 
 ### Added
 - **Codebase Mapping Tool:**
