@@ -3,7 +3,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   const qrcodeContainer = document.getElementById("qrcode");
   const roomLink = document.getElementById("room-link");
 
-  // Retrieve room ID, encryption key, and auth token
+  // 1. Dynamic Injection (for non-predefined sites via activeTab)
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tab && tab.url && tab.url.startsWith('http')) {
+    chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ['content.js']
+    }).catch(err => console.error("Injection failed:", err));
+  }
+
+  // 2. Retrieve room ID, encryption key, and auth token
   const data = await chrome.storage.local.get(['voicemux_room_id', 'voicemux_key', 'voicemux_token']);
   const roomId = data.voicemux_room_id;
   const keyBase64 = data.voicemux_key;

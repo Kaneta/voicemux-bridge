@@ -38,4 +38,19 @@
 - `background.js`: WebSocket & Key management.
 - `content.js`: DOM manipulation & Adapter logic.
 - `adapters.json`: Built-in site adapters.
+- `USER_GUIDE.md`: Friendly instructions for end-users.
 - `docs/`: Project documentation (AGENTS, PROGRESS, ADRs).
+
+## 5. Agent Instructions
+This project follows **[Document-Driven Development for AI (DDD for AI)](https://github.com/kohei-v/How2Context/blob/main/docs/DDD_GUIDE.md)** standards.
+
+### Session Start Ritual
+When starting a new session, the agent MUST:
+1. Ensure local ignore settings: If `full_context.txt` or `project_map.md` are not ignored, add them to `.git/info/exclude` (NOT `.gitignore`).
+2. Run `./collect_context.sh` to refresh the project context.
+3. Read the generated `full_context.txt` to synchronize with the current state of the codebase and documentation.
+
+### Development Rules
+- **Atomic Updates**: Always update documentation (`docs/PROGRESS.md`, etc.) in sync with code changes.
+- **SSOT**: The `docs/` directory is the Single Source of Truth for project status and architecture.
+

@@ -1,3 +1,31 @@
+## 2026-02-12
+### Added
+- **User-Friendly Documentation:**
+    - Created `USER_GUIDE.md` with clear instructions, emphasizing the use of smartphone keyboards (Gboard/iOS) for familiar voice input and correcting icon descriptions (Microphone Stand).
+- **Dynamic Content Script Injection:**
+    - Modified `popup.js` to dynamically inject `content.js` into the active tab upon opening the popup. This enables support for any website without requiring persistent `<all_urls>` permissions.
+- **Real-time Adapter Synchronization:**
+    - Added a storage listener to `content.js` that automatically reloads site adapters when the user saves changes in the Options page.
+
+### Changed
+- **Permission Minimization (Security):**
+    - Bumped version to `1.4.1`.
+    - Removed `<all_urls>` from `content_scripts` in `manifest.json` to comply with the Principle of Least Privilege.
+    - Added `scripting` permission to support dynamic injection.
+- **Robustness Improvements:**
+    - Refactored `content.js` with an initialization guard and a loading Promise to prevent race conditions during adapter initialization.
+- **How2Context Standard Update:**
+    - Updated `collect_context.sh` to match the `@How2Context` standard.
+    - Output file changed to `full_context.txt` in the project root.
+    - Integrated `gen_map.sh` for automatic codebase mapping in context collection.
+- **Git Hygiene Management:**
+    - Moved AI-specific ignore patterns (`full_context.txt`, `project_map.md`) from `.gitignore` to `.git/info/exclude`.
+    - This ensures the public `.gitignore` remains clean and professional for GitHub while maintaining local AI workflow.
+
+### Added
+- **Codebase Mapping Tool:**
+    - Added `gen_map.sh` from `@How2Context` to support structural codebase analysis.
+
 ## 2026-02-08
 ### Changed
 - **Strict Token Enforcement:**

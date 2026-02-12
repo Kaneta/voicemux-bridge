@@ -1,11 +1,12 @@
 {
   "manifest_version": 3,
   "name": "VoiceMux Bridge",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "VoiceMux Pairing with QR Code and Custom Adapters",
   "permissions": [
     "activeTab",
-    "storage"
+    "storage",
+    "scripting"
   ],
   "host_permissions": [
     "http://localhost:4000/*",
@@ -33,8 +34,7 @@
         "https://*.slack.com/*",
         "https://www.perplexity.ai/*",
         "https://notebooklm.google.com/*",
-        "https://treenoteweb.pages.dev/*",
-        "<all_urls>"
+        "https://treenoteweb.pages.dev/*"
       ],
       "js": [
         "content.js"
