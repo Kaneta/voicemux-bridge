@@ -1,7 +1,14 @@
 // VoiceMux Popup JS
+/**
+ * 実装意図:
+ * - Design Unification: サーバー側の M3 (Material Design 3) テーマと同期し、シームレスな UX を提供。
+ * - UI Simplification: 非常に長いペアリングURLを隠し、Room ID のみを表示することで視認性を向上。
+ * - Action Centralization: 「コピー」と「移動（QRクリック）」のアクションを明確に分離。
+ */
 document.addEventListener('DOMContentLoaded', async () => {
   const qrcodeContainer = document.getElementById("qrcode");
-  const roomLink = document.getElementById("room-link");
+  const qrcodeLink = document.getElementById("qrcode-link");
+  const roomIdDisplay = document.getElementById("room-id");
 
   // 1. Dynamic Injection (for non-predefined sites via activeTab)
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -26,8 +33,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     pairingUrl += `#key=${keyBase64}`;
     
-    roomLink.innerText = pairingUrl;
-    roomLink.href = pairingUrl;
+    // Display only the Room ID for clarity
+    roomIdDisplay.innerText = `Room: ${roomId}`;
+    qrcodeLink.href = pairingUrl;
+
+    // Handle Copy Button
+    const copyBtn = document.getElementById("copy-btn");
+    const copyText = document.getElementById("copy-text");
+    copyBtn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(pairingUrl);
+        copyText.innerText = "Copied!";
+        copyBtn.classList.add("success");
+        setTimeout(() => {
+          copyText.innerText = "Copy Link";
+          copyBtn.classList.add("success"); // Keep green or remove? User preference usually prefers temporary.
+          copyBtn.classList.remove("success");
+        }, 2000);
+      } catch (err) {
+        console.error("Failed to copy:", err);
+      }
+    });
 
     // Generate QR Code
     new QRCode(qrcodeContainer, {

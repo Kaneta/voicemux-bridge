@@ -9,6 +9,13 @@
     - Updated `manifest.json`, `background.js`, and `popup.js` to point to the new endpoints.
     - Maintained support for the old domain in `host_permissions` for transition stability.
 
+## 2026-02-14
+### Changed
+- **Material Design 3 UI Refresh:**
+    - Redesigned `popup.html` and `options.html` using the M3 Violet baseline palette to match the VoiceMux server UI.
+    - Updated shapes, elevation, and typography to follow M3 guidelines (28px card corners, 16px FAB/button corners).
+    - Improved visual hierarchy and readability across all extension interfaces.
+
 ## 2026-02-12
 ### Added
 - **User-Friendly Documentation:**
