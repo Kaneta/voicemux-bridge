@@ -12,7 +12,9 @@
     "http://localhost:4000/*",
     "https://gemini.google.com/*",
     "https://*.fly.dev/*",
-    "https://voice.kaneta.net/*"
+    "https://voice.kaneta.net/*",
+    "https://v.knc.jp/*",
+    "https://t.knc.jp/*"
   ],
   "action": {
     "default_popup": "popup.html",

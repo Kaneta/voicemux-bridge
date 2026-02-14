@@ -1,6 +1,6 @@
 // Configuration
-const BASE_WS_URL = "wss://voice.kaneta.net/socket/websocket";
-const AUTH_URL = "https://voice.kaneta.net/api/auth";
+const BASE_WS_URL = "wss://v.knc.jp/socket/websocket";
+const AUTH_URL = "https://v.knc.jp/api/auth";
 
 let socket = null;
 let heartbeatInterval = null;
@@ -65,7 +65,7 @@ async function connect() {
 
     socket.onopen = () => {
       console.log("VoiceMux: Connected (Secure)");
-      console.log(`E2EE Pairing URL: https://voice.kaneta.net/?room=${roomId}&token=${token}#key=${keyBase64}`);
+      console.log(`E2EE Pairing URL: https://v.knc.jp/?room=${roomId}&token=${token}#key=${keyBase64}`);
 
       retryDelay = 1000;
       socket.send(JSON.stringify(["1", "1", currentTopic, "phx_join", {}]));

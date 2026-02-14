@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (roomId && keyBase64) {
     // Construct E2EE Pairing URL (Key is in the hash fragment)
-    let pairingUrl = `https://voice.kaneta.net/?room=${roomId}`;
+    let pairingUrl = `https://v.knc.jp/?room=${roomId}`;
     if (token) {
       pairingUrl += `&token=${token}`;
     }

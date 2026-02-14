@@ -1,3 +1,14 @@
+## 2026-02-14
+### Changed
+- **Multi-Domain Support:**
+    - Expanded support to include both `v.knc.jp` (Zen mode) and `t.knc.jp` (Translate mode).
+    - Updated `manifest.json` with new permissions.
+    - Verified real-time synchronization stability across domains.
+- **Domain Migration:**
+    - Migrated the primary server domain from `voice.kaneta.net` to `v.knc.jp`.
+    - Updated `manifest.json`, `background.js`, and `popup.js` to point to the new endpoints.
+    - Maintained support for the old domain in `host_permissions` for transition stability.
+
 ## 2026-02-12
 ### Added
 - **User-Friendly Documentation:**
