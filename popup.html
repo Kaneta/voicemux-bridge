@@ -28,28 +28,65 @@
       padding: 24px;
       background-color: var(--md-sys-color-surface);
       color: var(--md-sys-color-on-surface);
-      text-align: center;
       -webkit-font-smoothing: antialiased;
     }
 
+    .header {
+      margin-bottom: 24px;
+    }
+
     h1 {
-      font-size: 22px;
-      font-weight: 500;
-      margin: 0 0 8px 0;
-      color: var(--md-sys-color-on-surface);
-      letter-spacing: -0.01em;
+      font-size: 20px;
+      font-weight: 700;
+      margin: 0;
+      color: var(--md-sys-color-primary);
+      letter-spacing: -0.02em;
     }
     
     p {
-      font-size: 14px;
+      font-size: 13px;
       color: var(--md-sys-color-on-surface-variant);
-      margin-top: 0;
+      margin: 4px 0 0 0;
+    }
+
+    /* Step System */
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      text-align: left;
       margin-bottom: 24px;
+    }
+
+    .step {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .step-num {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      background-color: var(--md-sys-color-primary);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .step-text {
+      font-size: 13px;
+      line-height: 1.4;
+      color: var(--md-sys-color-on-surface);
     }
 
     #qrcode-link {
       display: block;
-      margin: 0 auto 24px auto;
+      margin: 8px auto;
       width: fit-content;
       text-decoration: none;
       transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -116,6 +153,32 @@
       color: var(--md-sys-color-success, #10b981);
       border-color: var(--md-sys-color-success, #10b981);
     }
+
+    .quick-links {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: 1px solid var(--md-sys-color-surface-variant);
+    }
+
+    .q-link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--md-sys-color-primary);
+      text-decoration: none;
+      opacity: 0.8;
+      transition: opacity 0.2s;
+    }
+
+    .q-link:hover {
+      opacity: 1;
+      text-decoration: underline;
+    }
     
     .footer {
       margin-top: 24px;
@@ -134,13 +197,49 @@
     }
   </style>
 </head>
+<!-- 
+  VoiceMux Bridge Popup UI
+  Implementation Intent:
+  - Onboarding: Uses a numbered step-by-step guide to lower the barrier for new users.
+  - Refresh Instruction: Explicitly includes 'Refresh' as Step 2 to solve common initial loading issues.
+  - Quick Links: Provides dynamic paths to the Web Monitor (v.knc.jp) and Support (GitHub) for feature discovery.
+  - M3 Consistency: Adheres to Material Design 3 tokens for a professional brand experience.
+-->
 <body>
-  <h1>VoiceMux Pairing</h1>
-  <p>Scan to connect your phone</p>
-  
-  <a id="qrcode-link" href="#" target="_blank">
-    <div id="qrcode"></div>
-  </a>
+  <div class="header">
+    <h1>VoiceMux Bridge</h1>
+    <p>Smartphone as a Remote Mic</p>
+  </div>
+
+  <div class="steps">
+    <!-- Step 1 -->
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-text">Open ChatGPT, Gemini, or any site you want to type into.</div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-text"><strong>Refresh the page</strong> once.<br><span style="font-size: 11px; opacity: 0.7;">(Skip if already connected)</span></div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-text">Scan this QR code with your smartphone camera.</div>
+    </div>
+
+    <a id="qrcode-link" href="#" target="_blank">
+      <div id="qrcode"></div>
+    </a>
+
+    <!-- Step 4 -->
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-text">Speak into your phone. Text will appear at your cursor.</div>
+    </div>
+  </div>
   
   <div id="room-id" class="room-info">
     Generating Room...
@@ -153,9 +252,19 @@
     <span id="copy-text">Copy Link</span>
   </button>
 
+  <div class="quick-links">
+    <a href="https://v.knc.jp" target="_blank" class="q-link">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M10 14L21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path></svg>
+      Open Web Monitor
+    </a>
+    <a href="https://github.com/Kaneta/voicemux-bridge" target="_blank" class="q-link">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+      Support (FAQ)
+    </a>
+  </div>
+
   <div class="footer">
-    Scan with your mobile camera.<br>
-    The connection is encrypted end-to-end.
+    🔐 End-to-End Encrypted Sync
   </div>
 
   <script src="qrcode.min.js"></script>

@@ -116,13 +116,21 @@ if (window.VOICEMUX_INITIALIZED) {
     }
   }
 
-  /** Injects text into a target element, bypassing React's internal state tracking. */
+  /** 
+   * Injects text into a target element, bypassing modern framework state tracking. 
+   * 
+   * Implementation Intent:
+   * - TEXTAREA/INPUT: Uses a prototype-level native setter hack to bypass React/Vue internal state.
+   * - ContentEditable: Uses direct textContent assignment combined with a synthetic InputEvent.
+   *   This ensures high compatibility with complex editors like Gmail, Gemini, and ChatGPT 
+   *   without destroying the underlying DOM structure or losing focus.
+   */
   function forceInject(element, text) {
     if (!element) return;
     element.focus();
     
-    // React Hack: Call native value setter to bypass React's state tracking
     if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
+      // React/Vue Hack: Call native value setter to bypass state tracking
       const proto = element.tagName === 'INPUT' ? window.HTMLInputElement.prototype : window.HTMLTextAreaElement.prototype;
       const nativeSetter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
       
@@ -131,12 +139,27 @@ if (window.VOICEMUX_INITIALIZED) {
       } else {
           element.value = text;
       }
-    } else {
-        // ContentEditable
-        element.innerText = text;
+    } else if (element.isContentEditable) {
+        // ContentEditable (Gmail, Gemini, ChatGPT, etc.)
+        // Combination of property setting + InputEvent ensures frameworks catch the change.
+        try {
+            element.textContent = text;
+            
+            // Dispatch InputEvent to signal a change to the app's internal model.
+            const inputEvent = new InputEvent('input', {
+                bubbles: true,
+                cancelable: true,
+                inputType: 'insertText',
+                data: text
+            });
+            element.dispatchEvent(inputEvent);
+        } catch (e) {
+            console.error("VoiceMux: Injection failed, trying fallback", e);
+            element.innerText = text;
+        }
     }
 
-    // Dispatch events to trigger UI updates (enable send buttons etc)
+    // Dispatch standard events for simpler/legacy listeners
     element.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
     element.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
     

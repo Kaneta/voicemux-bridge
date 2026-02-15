@@ -10,16 +10,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   const qrcodeLink = document.getElementById("qrcode-link");
   const roomIdDisplay = document.getElementById("room-id");
 
-  // 1. Dynamic Injection (for non-predefined sites via activeTab)
+  // 1. Log context
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (tab && tab.url && tab.url.startsWith('http')) {
-    chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      files: ['content.js']
-    }).catch(err => console.error("Injection failed:", err));
-  }
+  console.log("VoiceMux Popup opened on:", tab?.url);
 
-  // 2. Retrieve room ID, encryption key, and auth token
+  // 2. Retrieve room ID, encryption key, and auth token from background storage
   const data = await chrome.storage.local.get(['voicemux_room_id', 'voicemux_key', 'voicemux_token']);
   const roomId = data.voicemux_room_id;
   const keyBase64 = data.voicemux_key;
@@ -51,7 +46,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         copyBtn.classList.add("success");
         setTimeout(() => {
           copyText.innerText = "Copy Link";
-          copyBtn.classList.add("success"); // Keep green or remove? User preference usually prefers temporary.
           copyBtn.classList.remove("success");
         }, 2000);
       } catch (err) {
@@ -69,6 +63,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       correctLevel: QRCode.CorrectLevel.H
     });
   } else {
-    roomLink.innerText = "Error: Room ID or Key not found. Please reload the extension.";
+    roomIdDisplay.innerText = "Error: Room ID or Key not found. Please wait or reload.";
   }
 });
