@@ -26,10 +26,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   const token = data.voicemux_token;
 
   if (roomId && keyBase64) {
-    // Construct E2EE Pairing URL (Key is in the hash fragment)
-    let pairingUrl = `https://v.knc.jp/?room=${roomId}`;
+    // Construct E2EE Pairing URL (Points directly to ZenLive session)
+    let pairingUrl = `https://v.knc.jp/z/${roomId}`;
+    let queryParams = [];
     if (token) {
-      pairingUrl += `&token=${token}`;
+      queryParams.push(`token=${token}`);
+    }
+    if (queryParams.length > 0) {
+      pairingUrl += `?${queryParams.join('&')}`;
     }
     pairingUrl += `#key=${keyBase64}`;
     

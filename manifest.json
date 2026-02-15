@@ -1,20 +1,15 @@
 {
   "manifest_version": 3,
   "name": "VoiceMux Bridge",
-  "version": "1.4.1",
+  "version": "1.5.4",
   "description": "VoiceMux Pairing with QR Code and Custom Adapters",
   "permissions": [
     "activeTab",
-    "storage",
-    "scripting"
+    "storage"
   ],
   "host_permissions": [
     "http://localhost:4000/*",
-    "https://gemini.google.com/*",
-    "https://*.fly.dev/*",
-    "https://voice.kaneta.net/*",
-    "https://v.knc.jp/*",
-    "https://t.knc.jp/*"
+    "https://v.knc.jp/*"
   ],
   "action": {
     "default_popup": "popup.html",
@@ -29,14 +24,11 @@
   "content_scripts": [
     {
       "matches": [
-        "https://gemini.google.com/*",
-        "https://chatgpt.com/*",
-        "https://claude.ai/*",
-        "https://app.slack.com/*",
-        "https://*.slack.com/*",
-        "https://www.perplexity.ai/*",
-        "https://notebooklm.google.com/*",
-        "https://treenoteweb.pages.dev/*"
+        "<all_urls>"
+      ],
+      "exclude_matches": [
+        "https://v.knc.jp/*",
+        "https://t.knc.jp/*"
       ],
       "js": [
         "content.js"

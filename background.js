@@ -65,7 +65,7 @@ async function connect() {
 
     socket.onopen = () => {
       console.log("VoiceMux: Connected (Secure)");
-      console.log(`E2EE Pairing URL: https://v.knc.jp/?room=${roomId}&token=${token}#key=${keyBase64}`);
+      console.log(`E2EE Pairing URL: https://v.knc.jp/z/${roomId}?token=${token}#key=${keyBase64}`);
 
       retryDelay = 1000;
       socket.send(JSON.stringify(["1", "1", currentTopic, "phx_join", {}]));
