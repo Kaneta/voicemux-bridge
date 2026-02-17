@@ -1,11 +1,13 @@
 {
   "manifest_version": 3,
   "name": "VoiceMux Bridge",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "VoiceMux Pairing with QR Code and Custom Adapters",
   "permissions": [
     "activeTab",
-    "storage"
+    "storage",
+    "alarms",
+    "scripting"
   ],
   "host_permissions": [
     "http://localhost:4000/*",

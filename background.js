@@ -2,6 +2,15 @@
 const BASE_WS_URL = "wss://v.knc.jp/socket/websocket";
 const AUTH_URL = "https://v.knc.jp/api/auth";
 
+/**
+ * decodes Base64 strings safely, supporting both Standard and URL-safe formats.
+ */
+function safeAtob(base64) {
+  if (!base64) return "";
+  const standardBase64 = base64.replace(/-/g, '+').replace(/_/g, '/');
+  return atob(standardBase64);
+}
+
 let socket = null;
 let heartbeatInterval = null;
 let retryTimer = null;
@@ -29,6 +38,7 @@ async function getOrCreateSecrets() {
       ["encrypt", "decrypt"]
     );
     const exportedKey = await crypto.subtle.exportKey("raw", key);
+    // standard Base64
     keyBase64 = btoa(String.fromCharCode(...new Uint8Array(exportedKey)));
     await chrome.storage.local.set({ 'voicemux_key': keyBase64 });
   }
@@ -125,14 +135,56 @@ function cleanup() {
   heartbeatInterval = null;
 }
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === "check_connection") {
-    if (!socket || socket.readyState !== WebSocket.OPEN) {
-      retryDelay = 1000; 
-      if (retryTimer) clearTimeout(retryTimer);
-      connect();
-    }
+/** Signals the background script to check or re-establish the WebSocket connection. */
+
+function safeCheckConnection() {
+
+  if (!socket || socket.readyState !== WebSocket.OPEN) {
+
+    console.log("VoiceMux: Connection lost, reconnecting...");
+
+    retryDelay = 1000; 
+
+    if (retryTimer) clearTimeout(retryTimer);
+
+    connect();
+
   }
+
+}
+
+
+
+// 1. Listen for alarms to keep the Service Worker alive
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+
+  if (alarm.name === "keepAlive") {
+
+    safeCheckConnection();
+
+  }
+
 });
+
+
+
+// Create periodic alarm (every 1 minute)
+
+chrome.alarms.create("keepAlive", { periodInMinutes: 1 });
+
+
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+
+  if (request.action === "check_connection") {
+
+    safeCheckConnection();
+
+  }
+
+});
+
+
 
 connect();

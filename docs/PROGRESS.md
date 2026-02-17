@@ -21,6 +21,10 @@
 
 ## 2026-02-17
 ### Changed
+- **Cross-Platform Robustness:**
+    - Implemented `safeAtob` helper to handle both URL-safe and Standard Base64 encoding, ensuring 100% key compatibility with Go client.
+    - Added `chrome.alarms` periodic heartbeat (1 min) to keep the Service Worker alive and maintain WebSocket connection stability (Manifest V3 compliance).
+    - Bumped version to `1.6.1`.
 - **Protocol Standardization:**
     - Verified full compatibility with Phoenix Protocol `vsn=2.0.0` (Array format).
     - Confirmed that the Go client (`VoiceMuxGo`) and Relay Server are now aligned with the extension's array-based communication.

@@ -5,6 +5,15 @@ if (window.VOICEMUX_INITIALIZED) {
   window.VOICEMUX_INITIALIZED = true;
   console.log("VoiceMux Bridge v2.6 Loaded");
 
+  /**
+   * decodes Base64 strings safely, supporting both Standard and URL-safe formats.
+   */
+  function safeAtob(base64) {
+    if (!base64) return "";
+    const standardBase64 = base64.replace(/-/g, '+').replace(/_/g, '/');
+    return atob(standardBase64);
+  }
+
   let ADAPTERS_CACHE = [];
   let loadPromise = null;
 
@@ -96,7 +105,7 @@ if (window.VOICEMUX_INITIALIZED) {
   async function getDecryptionKey() {
     const data = await chrome.storage.local.get('voicemux_key');
     if (!data.voicemux_key) return null;
-    const rawKey = Uint8Array.from(atob(data.voicemux_key), c => c.charCodeAt(0));
+    const rawKey = Uint8Array.from(safeAtob(data.voicemux_key), c => c.charCodeAt(0));
     return await crypto.subtle.importKey("raw", rawKey, "AES-GCM", true, ["decrypt"]);
   }
 
@@ -106,8 +115,8 @@ if (window.VOICEMUX_INITIALIZED) {
     try {
       const key = await getDecryptionKey();
       if (!key) throw new Error("Key not found");
-      const iv = Uint8Array.from(atob(payload.iv), c => c.charCodeAt(0));
-      const ciphertext = Uint8Array.from(atob(payload.ciphertext), c => c.charCodeAt(0));
+      const iv = Uint8Array.from(safeAtob(payload.iv), c => c.charCodeAt(0));
+      const ciphertext = Uint8Array.from(safeAtob(payload.ciphertext), c => c.charCodeAt(0));
       const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext);
       return new TextDecoder().decode(decrypted);
     } catch (e) {
