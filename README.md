@@ -11,18 +11,28 @@ This extension features true Client-Side End-to-End Encryption (E2EE).
 - **Auditable**: All security logic is open for public audit in this repository.
 
 ### 🛡️ Transparency & Permissions
-We understand that Chrome's "Read and change all data" warning can be intimidating. We provide full disclosure on why this is necessary:
-- [**Transparency Report**: Why we need "Access to All Sites"](docs/WHY_PERMISSIONS_EN.md)
-- [**E2EE Implementation**: Technical Proof of Privacy](docs/E2EE_IMPLEMENTATION_EN.md)
-- [**Dev Log**: AI Consultation about Security Warnings](docs/DEVELOPMENT_LOG_AI_CONSULTATION_EN.md)
 
-インストール時の権限に関する警告については、以下のレポートをご確認ください：
-- [**透明性レポート**: なぜ「全サイトへのアクセス権限」が必要なのか](docs/WHY_PERMISSIONS_JA.md)
-- [**E2EE実装レポート**: プライバシー保護の技術的証明](docs/E2EE_IMPLEMENTATION_JA.md)
-- [**開発ログ**: セキュリティ警告についてAIと相談した記録](docs/DEVELOPMENT_LOG_AI_CONSULTATION.md)
+We provide full disclosure on our implementation and technical decisions:
 
 - [**Changelog**: Release history](docs/CHANGELOG.md)
+
+- [**Transparency Report**: Why we need "Access to All Sites"](docs/WHY_PERMISSIONS_EN.md)
+
+- [**E2EE Implementation**: Technical Proof of Privacy](docs/E2EE_IMPLEMENTATION_EN.md)
+
+- [**Dev Log**: AI Consultation about Security Warnings](docs/DEVELOPMENT_LOG_AI_CONSULTATION_EN.md)
+
+
+
+インストール時の権限に関する警告については、以下のレポートをご確認ください：
+
 - [**更新履歴**: 過去の変更点](docs/CHANGELOG_JA.md)
+
+- [**透明性レポート**: なぜ「全サイトへのアクセス権限」が必要なのか](docs/WHY_PERMISSIONS_JA.md)
+
+- [**E2EE実装レポート**: プライバシー保護の技術적証明](docs/E2EE_IMPLEMENTATION_JA.md)
+
+- [**開発ログ**: セキュリティ警告についてAIと相談した記録](docs/DEVELOPMENT_LOG_AI_CONSULTATION.md)
 
 ## 🚀 Features
 - **One-Tap Pairing**: Click the extension icon to show a QR code for instant, secure pairing.
