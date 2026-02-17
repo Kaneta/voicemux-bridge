@@ -34,5 +34,14 @@ We understand that Chrome's "Read and change all data" warning can be intimidati
 3. Enable "Developer mode".
 4. Click "Load unpacked" and select the `voicemux-bridge` folder.
 
+## 👤 Developer / 開発者
+VoiceMux Bridge is developed by **Kaneta**, a developer with extensive experience in Android app development and a passion for bridging mobile utility to the desktop.
+- [**Google Play Store Profile**](https://play.google.com/store/apps/developer?id=Kaneta): Check out my other mobile applications.
+- [**GitHub Profile**](https://github.com/Kaneta): View my open-source contributions.
+
+開発者: **Kaneta**。Android アプリ開発の経験を活かし、モバイルの利便性をデスクトップへ拡張することに情熱を注いでいます。
+- [**Google Play デベロッパー プロフィール**](https://play.google.com/store/apps/developer?id=Kaneta): 公開中の Android アプリはこちら。
+- [**GitHub プロフィール**](https://github.com/Kaneta): オープンソースでの活動はこちら。
+
 ## 📄 License
 MIT License - see the [LICENSE](LICENSE) file for details.
