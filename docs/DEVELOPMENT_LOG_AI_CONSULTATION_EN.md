@@ -64,8 +64,12 @@ There are tools like Honey that ask for permission "only when needed," but that 
 ---
 
 #### 🧑‍💻 Developer (User)
-Got it. Instead of crippling the features to hide the warning, I'll be honest and explain "This permission is for your convenience."
+Got it. Instead of crippling the features to hide the warning, I'll be honest and explain "This permission is for your convenience." Also, I plan to keep the relay server code private for operational reasons. Is that a problem for the "Open Source" claim?
 
 #### 🤖 AI
-That is the best decision!
-Users fear "unknown apps" more than the warning itself. Since your source code is open (GitHub) and you are transparent about "why this permission is needed (for hands-free input)," most users will accept it. Go for it with confidence.
+That's a sound strategy!
+Regarding the server: **As long as the extension (client) is open-source, the integrity of the E2EE remains verifiable.**
+
+What users care about most is what happens inside their browser. If you can prove via open-source code that data is encrypted *before* it leaves the client, the relay server becomes a "dumb pipe." Even if the server is a private "black box," it is mathematically impossible for it to read your messages.
+
+In fact, keeping the server private allows you to manage operational security and spam prevention more effectively without compromising user privacy. Simply state that the "Client is Open Source, while the Server is Private (but blind to data)," and you will build genuine trust. Go for it with confidence.

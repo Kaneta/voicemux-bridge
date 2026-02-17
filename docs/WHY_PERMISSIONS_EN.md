@@ -38,11 +38,12 @@ If we restricted permissions to "activeTab" (only when clicked), **you would hav
 
 ## 3. Privacy and Security by Design
 
-We understand that "All Site Access" is a powerful permission. We balance this responsibility with the following security measures:
+We understand that "All Site Access" is a powerful permission. We balance this responsibility with the following transparency measures:
 
-- **End-to-End Encryption (E2EE):** All voice/text data is encrypted directly between your phone and your browser. Our relay server acts as a "dumb pipe" and cannot read your messages.
-- **Open Source:** Our entire codebase is public. Anyone can verify that we only handle your input text and do not touch passwords or private data.
-- **Zero Tracking:** We do not collect browsing history or analytics. Your encryption keys and Room IDs stay on your devices.
+- **Open Source Client:** The source code for the Chrome Extension is fully public on GitHub. This allows anyone to verify that data is encrypted *before* it leaves your browser and that we are not touching sensitive data like passwords.
+- **End-to-End Encryption (E2EE):** While our relay server operates in a private environment, it only handles encrypted blobs. Since the encryption happens in the open-source client, the server remains a "black box" that cannot see or log your actual text.
+- **Zero-Knowledge Key Exchange:** Your encryption keys are shared with your phone via URL hash fragments (`#key=...`). By technical design, these fragments are never sent to any server, ensuring your keys never touch the network.
+- **No Tracking:** We do not collect browsing history or analytics. Your encryption keys and Room IDs stay stored locally on your devices.
 
 ---
 
