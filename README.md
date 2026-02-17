@@ -25,7 +25,7 @@ We understand that Chrome's "Read and change all data" warning can be intimidati
 - **One-Tap Pairing**: Click the extension icon to show a QR code for instant, secure pairing.
 - **Atomic Submit**: Bundles text injection and send actions to ensure reliability even on complex React-based SPAs.
 - **Custom Site Adapters**: Add support for any website by defining your own CSS selectors in the Extension Options page.
-- **Community Catalog**: Access pre-made configurations for Outlook, Slack, Notion, and more via our [Community Adapters Catalog](community-adapters.md).
+- [**Community Catalog**](docs/community-adapters.md): Access pre-made configurations for Outlook, Slack, Notion, and more via our Community Adapters Catalog.
 - **Universal Compatibility**: Falls back to the active element if no specific site adapter matches.
 
 ## 🛠️ How to Install (Developer Mode)
