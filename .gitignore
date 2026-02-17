@@ -3,5 +3,7 @@ icon.svg
 full_context.txt
 context.txt
 project_map.md
+collect_context.sh
+gen_map.sh
 node_modules/
 .DS_Store
