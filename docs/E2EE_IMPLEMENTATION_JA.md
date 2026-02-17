@@ -74,7 +74,27 @@ async function decrypt(payload) {
 2.  **安全な通信**: 鍵がネットワークを流れることはありません。
 3.  **信頼の根拠**: 拡張機能がオープンソースであるため、上記に嘘がないことを誰でも検証可能です。
 
-VoiceMux Bridge は、プライバシーを技術によって保護する設計となっています。
+---
+
+## 5. ストア版とGitHubのコードが同一か確認する方法
+「GitHubのコードは綺麗だが、ストアで配布されているものは中身が違うのではないか？」という疑問は、以下の手順でユーザー自身が解消できます。
+
+### A. ローカルに保存されたソースコードを確認する
+Chromeウェブストアからインストールした拡張機能のソースコードは、あなたのPCの以下のディレクトリに保存されています。
+
+- **Windows**: `%LOCALAPPDATA%\Google\Chrome\User Data\Default\Extensions\agkglknmadfhdfobmgecllpgoecebdip`
+- **Mac**: `~/Library/Application Support/Google/Chrome/Default/Extensions/agkglknmadfhdfobmgecllpgoecebdip`
+- **Linux**: `~/.config/google-chrome/Default/Extensions/agkglknmadfhdfobmgecllpgoecebdip`
+
+このフォルダ内の JS ファイル（`background.js`, `content.js` 等）を開き、GitHub 上のコードと比較してみてください。VoiceMux Bridge はコードの難読化（読みづらくする処理）を行っていないため、そのまま比較が可能です。
+
+### B. 実行中のコードをブラウザで直接見る
+1. 適当なページ（例：Gemini）を開きます。
+2. `F12` キー（または右クリック > 検証）でデベロッパーツールを開きます。
+3. **「ソース (Sources)」** タブを選択します。
+4. 左側のツリーから **「コンテンツスクリプト (Content Scripts)」** > **「VoiceMux Bridge」** を探すと、現在そのページで動いている `content.js` の中身を直接確認できます。
+
+VoiceMux Bridge は、技術的な誠実さを透明性によって証明します。
 
 ---
 *最終更新: 2026-02-17*

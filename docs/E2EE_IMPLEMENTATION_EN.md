@@ -73,7 +73,27 @@ Based on the implementation above:
 2. **Secure Transport:** Keys never touch the network or the server.
 3. **Transparent Logic:** Since the extension is open-source, anyone can verify that we do not leak data or bypass encryption.
 
-By keeping the encryption/decryption logic within the open-source client, we provide a verifiably secure bridge that respects your privacy.
+---
+
+## 5. How to Verify the Identity of the Code
+"How do I know the code running in my browser is the same as this GitHub code?" You can verify this yourself with these steps:
+
+### A. Inspect the installed files on your disk
+Chrome stores the source code of installed extensions on your local machine.
+
+- **Windows**: `%LOCALAPPDATA%\Google\Chrome\User Data\Default\Extensions\agkglknmadfhdfobmgecllpgoecebdip`
+- **Mac**: `~/Library/Application Support/Google/Chrome/Default/Extensions/agkglknmadfhdfobmgecllpgoecebdip`
+- **Linux**: `~/.config/google-chrome/Default/Extensions/agkglknmadfhdfobmgecllpgoecebdip`
+
+You can open the JS files (`background.js`, `content.js`, etc.) in these folders and compare them with the GitHub repository. VoiceMux Bridge does not minify or obfuscate its code, making comparison easy.
+
+### B. Use Browser Developer Tools
+1. Open any website where the extension is active (e.g., Gemini).
+2. Press `F12` (or Right-click > Inspect) to open Developer Tools.
+3. Go to the **"Sources"** tab.
+4. In the left pane, look for **"Content Scripts"** > **"VoiceMux Bridge"**. You can read the `content.js` file that is currently executing on that page.
+
+VoiceMux Bridge proves its integrity through total transparency.
 
 ---
 *Last Updated: 2026-02-17*
