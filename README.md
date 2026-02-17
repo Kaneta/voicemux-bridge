@@ -46,6 +46,7 @@ We provide full disclosure on our implementation and technical decisions:
 2. **Crucial:** **Refresh (Reload) any tabs** you already have open (like ChatGPT or Gemini) to activate the bridge.
 3. Click the extension icon to pair with your phone.
 
+### インストール方法
 1. [**Chrome ウェブストア**](https://chromewebstore.google.com/detail/voicemux-bridge/agkglknmadfhdfobmgecllpgoecebdip) からインストールします。
 2. **重要:** すでに開いているタブ（ChatGPTやGeminiなど）で利用するには、そのページを **一度再読み込み（リロード）** してください。
 3. 拡張機能のアイコンをクリックして、スマホとペアリングを開始します。
