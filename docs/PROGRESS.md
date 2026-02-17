@@ -19,6 +19,12 @@
 - **Universal Site Support:**
     - Restored `"<all_urls>"` in `content_scripts.matches` to enable the "Input into any website" feature, while excluding `knc.jp` domains to prevent sync conflicts with the server's native logic.
 
+## 2026-02-17
+### Changed
+- **Protocol Standardization:**
+    - Verified full compatibility with Phoenix Protocol `vsn=2.0.0` (Array format).
+    - Confirmed that the Go client (`VoiceMuxGo`) and Relay Server are now aligned with the extension's array-based communication.
+
 ## 2026-02-14
 ### Changed
 - **Multi-Domain Support:**
