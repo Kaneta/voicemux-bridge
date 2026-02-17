@@ -39,9 +39,14 @@ VoiceMux Bridge is developed by **Kaneta**, a developer with extensive experienc
 - [**Google Play Store Profile**](https://play.google.com/store/apps/developer?id=Kaneta): Check out my other mobile applications.
 - [**GitHub Profile**](https://github.com/Kaneta): View my open-source contributions.
 
-開発者: **Kaneta**。Android アプリ開発の経験を活かし、モバイルの利便性をデスクトップへ拡張することに情熱を注いでいます。
-- [**Google Play デベロッパー プロフィール**](https://play.google.com/store/apps/developer?id=Kaneta): 公開中の Android アプリはこちら。
-- [**GitHub プロフィール**](https://github.com/Kaneta): オープンソースでの活動はこちら。
+### 🍃 Sustainability & Philosophy / 持続可能性と哲学
+- **Why is it free?**: VoiceMux leverages the power of your own smartphone and uses low-overhead, E2EE-encrypted relaying. This minimizes our server costs, allowing us to provide the core experience for free.
+- **Future-Proof**: This project is developed 100% with AI assistance (**Gemini**). This ensures that the logic is standardized and well-documented. The knowledge required to maintain or even recreate the relay infrastructure is not "locked" in one person's head, making it easier for the community to sustain the project if needed.
+- **Commitment**: Our core goal is to provide the "fastest input experience." While we may introduce premium features (like advanced dictionary sync) in the future to support growth, the essential "Phone-to-PC" bridge will remain accessible.
+
+- **なぜ無料なのですか？**: VoiceMux は「ユーザー自身のスマホの処理能力」と「E2EEによる低負荷な中継」を組み合わせることで、サーバーコストを極限まで抑えています。この設計により、基本機能を無料で提供し続けることが可能です。
+- **継続性の担保**: 本プロジェクトは 100% AI（**Gemini**）との対話を通じて制作されています。コードの構造が標準化されており、開発の意図が明確に記録されているため、万が一私がメンテナンスを継続できなくなった場合でも、他の誰かがサーバーを再構築したり維持したりすることが比較的容易です。
+- **想い**: 私が何より大切にしているのは「思考を妨げない最高の入力体験」です。将来的にサービスを維持・拡張するための仕組みを導入する可能性はありますが、今の基本機能が突然使えなくなるようなことはありません。
 
 ## 📄 License
 MIT License - see the [LICENSE](LICENSE) file for details.
