@@ -21,6 +21,9 @@ We understand that Chrome's "Read and change all data" warning can be intimidati
 - [**E2EE実装レポート**: プライバシー保護の技術的証明](docs/E2EE_IMPLEMENTATION_JA.md)
 - [**開発ログ**: セキュリティ警告についてAIと相談した記録](docs/DEVELOPMENT_LOG_AI_CONSULTATION.md)
 
+- [**Changelog**: Release history](docs/CHANGELOG.md)
+- [**更新履歴**: 過去の変更点](docs/CHANGELOG_JA.md)
+
 ## 🚀 Features
 - **One-Tap Pairing**: Click the extension icon to show a QR code for instant, secure pairing.
 - **Atomic Submit**: Bundles text injection and send actions to ensure reliability even on complex React-based SPAs.
