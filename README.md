@@ -28,11 +28,14 @@ We understand that Chrome's "Read and change all data" warning can be intimidati
 - [**Community Catalog**](docs/community-adapters.md): Access pre-made configurations for Outlook, Slack, Notion, and more via our Community Adapters Catalog.
 - **Universal Compatibility**: Falls back to the active element if no specific site adapter matches.
 
-## 🛠️ How to Install (Developer Mode)
-1. Clone this repository.
-2. Open `chrome://extensions/` in Chrome.
-3. Enable "Developer mode".
-4. Click "Load unpacked" and select the `voicemux-bridge` folder.
+## 🛠️ How to Install
+1. Install from the [**Chrome Web Store**](https://chromewebstore.google.com/detail/voicemux-bridge/agkglknmadfhdfobmgecllpgoecebdip).
+2. **Crucial:** **Refresh (Reload) any tabs** you already have open (like ChatGPT or Gemini) to activate the bridge.
+3. Click the extension icon to pair with your phone.
+
+1. [**Chrome ウェブストア**](https://chromewebstore.google.com/detail/voicemux-bridge/agkglknmadfhdfobmgecllpgoecebdip) からインストールします。
+2. **重要:** すでに開いているタブ（ChatGPTやGeminiなど）で利用するには、そのページを **一度再読み込み（リロード）** してください。
+3. 拡張機能のアイコンをクリックして、スマホとペアリングを開始します。
 
 ## 👤 Developer / 開発者
 VoiceMux Bridge is developed by **Kaneta**, a developer with extensive experience in Android app development and a passion for bridging mobile utility to the desktop.

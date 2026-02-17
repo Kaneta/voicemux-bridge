@@ -7,6 +7,14 @@ No complex setup required. Let's take the first step together with this guide.
 
 ---
 
+> ⚠️ **Important: Initial Setup Note**
+> 
+> After installing or updating VoiceMux Bridge, the extension will not work on tabs that were already open (like ChatGPT or Gemini).
+> 
+> To ensure it works correctly, **please "Refresh (Reload)" the website page you wish to use.**
+
+---
+
 ## 1. Setup: Connect your Smartphone (Pairing)
 
 First, securely connect your PC and smartphone.
