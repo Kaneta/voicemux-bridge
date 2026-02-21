@@ -7,8 +7,7 @@
   "permissions": [
     "activeTab",
     "storage",
-    "alarms",
-    "scripting"
+    "alarms"
   ],
   "host_permissions": [
     "http://localhost:4000/*",
