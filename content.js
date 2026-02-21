@@ -199,7 +199,33 @@ if (window.VOICEMUX_INITIALIZED) {
       target.dispatchEvent(new KeyboardEvent('keyup', opts));
   }
 
-  // Message Listener
+  // ★ Hub Synchronization (KNC ID Support)
+  /** 
+   * Detects authentication info from hub.knc.jp and syncs it with the background script.
+   * DESIGN INTENT: Zero-config pairing by reading the Hub's active session.
+   */
+  function syncWithHub() {
+    if (!window.location.hostname.includes("hub.knc.jp")) return;
+
+    const authEl = document.getElementById("voicemux-bridge-auth");
+    if (authEl) {
+      const { uuid, token, key } = authEl.dataset;
+      if (uuid && token && key) {
+        chrome.runtime.sendMessage({
+          action: "sync_auth",
+          payload: { uuid, token, key }
+        }).catch(() => {});
+      }
+    }
+  }
+
+  // Poll for auth info (since it might be added/updated dynamically)
+  if (window.location.hostname.includes("hub.knc.jp")) {
+    setInterval(syncWithHub, 2000);
+    syncWithHub();
+  }
+
+  // Message Listener (Simplified for Plaintext)
   chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     const { target, adapter } = await getTargetAndAdapter();
     
@@ -208,7 +234,8 @@ if (window.VOICEMUX_INITIALIZED) {
         return;
     }
 
-    const plaintext = await decrypt(request.payload);
+    // Now receiving plaintext directly from background.js
+    const plaintext = request.plaintext;
 
     if (request.action === "update_text") {
       forceInject(target, plaintext);

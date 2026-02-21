@@ -1,6 +1,9 @@
+// VoiceMux Bridge: Background Service Worker (Stateless Identity Mode)
 // Configuration
-const BASE_WS_URL = "wss://v.knc.jp/socket/websocket";
-const AUTH_URL = "https://v.knc.jp/api/auth";
+const IS_DEV = true; // Set to true for local backend testing
+const BASE_WS_URL = IS_DEV ? "ws://localhost:4000/socket/websocket" : "wss://v.knc.jp/socket/websocket";
+const IDENTITY_URL = IS_DEV ? "http://localhost:4000/api/auth/issue" : "https://v.knc.jp/api/auth/issue";
+const HUB_URL = IS_DEV ? "http://localhost:5173" : "https://hub.knc.jp";
 
 /**
  * decodes Base64 strings safely, supporting both Standard and URL-safe formats.
@@ -17,66 +20,105 @@ let retryTimer = null;
 let retryDelay = 1000;
 const MAX_RETRY_DELAY = 60000;
 
-// ★ Room & Key Management
-/** Retrieves or generates E2EE Room ID and AES-GCM key from local storage. */
-async function getOrCreateSecrets() {
-  const data = await chrome.storage.local.get(['voicemux_room_id', 'voicemux_key']);
+// ★ Identity & Key Management
+/** 
+ * Ensures the extension has a valid KNC ID and E2EE key.
+ * DESIGN INTENT: Silent onboarding via authoritative server.
+ */
+async function provisionIdentity() {
+  const data = await chrome.storage.local.get(['voicemux_token', 'voicemux_room_id', 'voicemux_key']);
   
-  let roomId = data.voicemux_room_id;
-  let keyBase64 = data.voicemux_key;
+  // Save current hub configuration for popup.js
+  await chrome.storage.local.set({ 'voicemux_hub_url': HUB_URL });
 
-  if (!roomId) {
-    roomId = crypto.randomUUID();
-    await chrome.storage.local.set({ 'voicemux_room_id': roomId });
-  }
-
-  if (!keyBase64) {
-    // Generate a new AES-GCM key
+  // 1. Always ensure local E2EE key exists (Zero-Knowledge)
+  // Even if identity is server-led, the encryption key remains client-side.
+  if (!data.voicemux_key) {
     const key = await crypto.subtle.generateKey(
       { name: "AES-GCM", length: 256 },
       true,
       ["encrypt", "decrypt"]
     );
     const exportedKey = await crypto.subtle.exportKey("raw", key);
-    // standard Base64
-    keyBase64 = btoa(String.fromCharCode(...new Uint8Array(exportedKey)));
+    const keyBase64 = btoa(String.fromCharCode(...new Uint8Array(exportedKey)));
     await chrome.storage.local.set({ 'voicemux_key': keyBase64 });
   }
 
-  return { roomId, keyBase64 };
+  // 2. If no token, fetch a formal guest identity from the authoritative server
+  if (!data.voicemux_token || !data.voicemux_room_id) {
+    console.log("VoiceMux: Provisioning new server-led KNC ID...");
+    try {
+      const res = await fetch(IDENTITY_URL, { method: 'POST' });
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
+      
+      const { uuid, token } = await res.json();
+      await chrome.storage.local.set({
+        'voicemux_room_id': uuid,
+        'voicemux_token': token
+      });
+      return { uuid, token };
+    } catch (e) {
+      console.error("VoiceMux: Identity provisioning failed:", e);
+      return null;
+    }
+  }
+
+  return { uuid: data.voicemux_room_id, token: data.voicemux_token };
 }
 
-/** Fetches a connection token from the server. */
-async function fetchToken(roomId) {
-  const response = await fetch(`${AUTH_URL}?room=${roomId}`);
-  if (!response.ok) throw new Error(`Auth failed: ${response.status}`);
-  const data = await response.json();
-  await chrome.storage.local.set({ 'voicemux_token': data.token });
-  return data.token;
+// ★ Crypto Helpers
+/** Imports the raw AES-GCM decryption key from storage. */
+async function getDecryptionKey() {
+  const data = await chrome.storage.local.get('voicemux_key');
+  if (!data.voicemux_key) return null;
+  const rawKey = Uint8Array.from(safeAtob(data.voicemux_key), c => c.charCodeAt(0));
+  return await crypto.subtle.importKey("raw", rawKey, "AES-GCM", true, ["decrypt"]);
 }
 
-/** Initializes WebSocket connection to the relay server and sets up heartbeat/reconnection logic. */
+/** Decrypts the received payload (ciphertext/iv) and returns plaintext string. */
+async function decrypt(payload) {
+  if (!payload.ciphertext || !payload.iv) return payload.text || "";
+  try {
+    const key = await getDecryptionKey();
+    if (!key) throw new Error("Key not found");
+    const iv = Uint8Array.from(safeAtob(payload.iv), c => c.charCodeAt(0));
+    const ciphertext = Uint8Array.from(safeAtob(payload.ciphertext), c => c.charCodeAt(0));
+    const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext);
+    return new TextDecoder().decode(decrypted);
+  } catch (e) {
+    console.error("[E2EE] Decryption failed:", e);
+    return "[Decryption Error]";
+  }
+}
+
+/** Initializes WebSocket connection to the relay server using KNC ID token. */
 async function connect() {
   if (socket && (socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN)) {
     return;
   }
 
+  // Ensure we have an identity before connecting
+  const identity = await provisionIdentity();
+  if (!identity) {
+    console.warn("VoiceMux: No identity available. Retrying...");
+    scheduleReconnect();
+    return;
+  }
+
+  const { uuid: roomId, token } = identity;
+
   try {
-    const { roomId, keyBase64 } = await getOrCreateSecrets();
-    const token = await fetchToken(roomId);
-    const currentTopic = `voice_input:${roomId}`;
+    const currentTopic = `room:${roomId}`; 
 
     console.log(`VoiceMux: Connecting... | Room: ${roomId}`);
     
-    // Construct WebSocket URL with parameters (token is now mandatory)
-    const wsUrl = `${BASE_WS_URL}?vsn=2.0.0&room=${roomId}&token=${token}`;
+    // Construct WebSocket URL with stateless KNC ID token
+    const wsUrl = `${BASE_WS_URL}?vsn=2.0.0&token=${token}`;
 
     socket = new WebSocket(wsUrl);
 
     socket.onopen = () => {
-      console.log("VoiceMux: Connected (Secure)");
-      console.log(`E2EE Pairing URL: https://v.knc.jp/z/${roomId}?token=${token}#key=${keyBase64}`);
-
+      console.log("VoiceMux: Connected (KNC ID Authenticated)");
       retryDelay = 1000;
       socket.send(JSON.stringify(["1", "1", currentTopic, "phx_join", {}]));
       
@@ -88,7 +130,7 @@ async function connect() {
       }, 30000);
     };
 
-    socket.onmessage = (event) => {
+    socket.onmessage = async (event) => {
       const data = JSON.parse(event.data);
       const msgTopic = data[2];
       const eventName = data[3];
@@ -96,11 +138,14 @@ async function connect() {
 
       if (msgTopic === currentTopic) {
         if (eventName === "update_text" || eventName === "confirm_send") {
+          // Centralized Decryption: Background script handles E2EE
+          const plaintext = await decrypt(payload);
+
           chrome.tabs.query({active: true, lastFocusedWindow: true}, (tabs) => {
             if (tabs[0]) {
                chrome.tabs.sendMessage(tabs[0].id, {
                 action: eventName,
-                payload: payload // 暗号化されたデータ（ciphertext, iv等）を丸ごと送る
+                plaintext: plaintext 
               }).catch(() => {});
             }
           });
@@ -136,55 +181,53 @@ function cleanup() {
 }
 
 /** Signals the background script to check or re-establish the WebSocket connection. */
-
 function safeCheckConnection() {
-
   if (!socket || socket.readyState !== WebSocket.OPEN) {
-
-    console.log("VoiceMux: Connection lost, reconnecting...");
-
+    console.log("VoiceMux: Connection check triggered...");
     retryDelay = 1000; 
-
     if (retryTimer) clearTimeout(retryTimer);
-
     connect();
-
   }
-
 }
 
-
-
 // 1. Listen for alarms to keep the Service Worker alive
-
 chrome.alarms.onAlarm.addListener((alarm) => {
-
   if (alarm.name === "keepAlive") {
-
     safeCheckConnection();
-
   }
-
 });
-
-
 
 // Create periodic alarm (every 1 minute)
-
 chrome.alarms.create("keepAlive", { periodInMinutes: 1 });
 
-
-
+// ★ Auth Sync Listener
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "sync_auth") {
+    const { uuid, token, key } = request.payload;
+    chrome.storage.local.get(['voicemux_token', 'voicemux_room_id', 'voicemux_key'], (data) => {
+      // Reconnect only if something has actually changed
+      const hasChanged = data.voicemux_token !== token || 
+                         data.voicemux_room_id !== uuid || 
+                         data.voicemux_key !== key;
 
-  if (request.action === "check_connection") {
-
-    safeCheckConnection();
-
+      if (hasChanged) {
+        console.log("[Auth] Session updated from Hub. Reconnecting...");
+        chrome.storage.local.set({
+          'voicemux_room_id': uuid,
+          'voicemux_token': token,
+          'voicemux_key': key
+        }, () => {
+          if (socket) socket.close();
+          connect();
+        });
+      }
+    });
   }
 
+  if (request.action === "check_connection") {
+    safeCheckConnection();
+  }
 });
 
-
-
+// Start initial connection
 connect();

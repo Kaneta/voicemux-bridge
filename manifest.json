@@ -11,7 +11,8 @@
   ],
   "host_permissions": [
     "http://localhost:4000/*",
-    "https://v.knc.jp/*"
+    "https://v.knc.jp/*",
+    "https://hub.knc.jp/*"
   ],
   "action": {
     "default_popup": "popup.html",

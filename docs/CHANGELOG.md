@@ -2,6 +2,12 @@
 
 All notable changes to **VoiceMux Bridge** will be documented in this file.
 
+## [1.7.0] - 2026-02-21
+### Added
+- **KNC ID Stateless Auth**: Implemented automatic session synchronization with `hub.knc.jp`. Pairing is now handled seamlessly without manual configuration.
+- **Centralized Decryption**: Moved E2EE decryption logic to the Background Service Worker for enhanced security. Content scripts now handle only plaintext data.
+- **Integrated Pairing**: Updated the extension popup and QR code to point to the modern Zen UI on `hub.knc.jp`.
+
 ## [1.6.1] - 2026-02-17
 ### Added
 - **Transparency Reports**: Added detailed documentation on "Why we need All Site Access" and "E2EE Implementation Proof."

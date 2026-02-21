@@ -15,21 +15,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   console.log("VoiceMux Popup opened on:", tab?.url);
 
   // 2. Retrieve room ID, encryption key, and auth token from background storage
-  const data = await chrome.storage.local.get(['voicemux_room_id', 'voicemux_key', 'voicemux_token']);
+  const data = await chrome.storage.local.get(['voicemux_room_id', 'voicemux_key', 'voicemux_token', 'voicemux_hub_url']);
   const roomId = data.voicemux_room_id;
   const keyBase64 = data.voicemux_key;
   const token = data.voicemux_token;
+  const hubBaseUrl = data.voicemux_hub_url || 'https://hub.knc.jp';
 
-  if (roomId && keyBase64) {
-    // Construct E2EE Pairing URL (Points directly to ZenLive session)
-    let pairingUrl = `https://v.knc.jp/z/${roomId}`;
-    let queryParams = [];
-    if (token) {
-      queryParams.push(`token=${token}`);
-    }
-    if (queryParams.length > 0) {
-      pairingUrl += `?${queryParams.join('&')}`;
-    }
+  if (roomId && keyBase64 && token) {
+    // Construct E2EE Pairing URL (Points directly to Hub Zen Mode)
+    let pairingUrl = `${hubBaseUrl}/${roomId}/zen`;
+    pairingUrl += `?token=${token}&uuid=${roomId}`; // Hub expects both
     pairingUrl += `#key=${keyBase64}`;
     
     // Display only the Room ID for clarity
@@ -63,6 +58,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       correctLevel: QRCode.CorrectLevel.H
     });
   } else {
-    roomIdDisplay.innerText = "Error: Room ID or Key not found. Please wait or reload.";
+    // Missing data, trigger background check and notify user
+    roomIdDisplay.innerText = "Initializing secure connection... Please wait.";
+    chrome.runtime.sendMessage({ action: "check_connection" });
+    
+    // Auto-reload popup once data is ready
+    const checkInterval = setInterval(async () => {
+      const check = await chrome.storage.local.get(['voicemux_room_id', 'voicemux_token']);
+      if (check.voicemux_room_id && check.voicemux_token) {
+        clearInterval(checkInterval);
+        window.location.reload();
+      }
+    }, 1000);
   }
 });
