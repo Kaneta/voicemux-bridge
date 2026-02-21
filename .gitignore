@@ -7,3 +7,10 @@ collect_context.sh
 gen_map.sh
 node_modules/
 .DS_Store
+STORE_DESCRIPTION_*.txt
+*.log
+.env
+---
+# Internal drafting files
+DRAFT_*
+MEMO_*
