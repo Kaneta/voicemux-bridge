@@ -1,82 +1,68 @@
-// VoiceMux Bridge Content Script v2.6 (Dynamic Injection & Storage Sync)
+// VoiceMux Bridge Content Script v3.0 (Clean Architecture)
 if (window.VOICEMUX_INITIALIZED) {
   console.log("VoiceMux: Already initialized in this tab.");
 } else {
   window.VOICEMUX_INITIALIZED = true;
-  console.log("VoiceMux Bridge v2.6 Loaded");
+  console.log("VoiceMux Bridge v3.0 Loaded");
 
   /**
-   * decodes Base64 strings safely, supporting both Standard and URL-safe formats.
+   * decodes Base64 strings safely.
    */
   function safeAtob(base64) {
     if (!base64) return "";
-    const standardBase64 = base64.replace(/-/g, '+').replace(/_/g, '/');
-    return atob(standardBase64);
+    let standardBase64 = base64.replace(/\s/g, '').replace(/-/g, '+').replace(/_/g, '/');
+    while (standardBase64.length % 4 !== 0) {
+      standardBase64 += '=';
+    }
+    try {
+      return atob(standardBase64);
+    } catch (e) {
+      console.error("[Base64] atob failed:", e);
+      return "";
+    }
   }
 
   let ADAPTERS_CACHE = [];
   let loadPromise = null;
 
   // ★ Initialize Adapters
-  /** Fetches and merges built-in and custom site adapters into a local cache. */
   async function loadAdapters() {
-    // If a load is already in progress, return the existing promise
     if (loadPromise) return loadPromise;
-
     loadPromise = (async () => {
       try {
-        // 1. Fetch Built-in Adapters
         const builtInUrl = chrome.runtime.getURL('adapters.json');
         const builtInRes = await fetch(builtInUrl);
         const builtInAdapters = await builtInRes.json();
-
-        // 2. Fetch Custom Adapters from storage
         const storage = await chrome.storage.local.get('custom_adapters');
         const customAdapters = storage.custom_adapters || [];
-
-        // 3. Normalize & Merge (Custom takes precedence)
         const normalizedCustom = customAdapters.map(a => ({
           name: a.name || "Custom",
           host: a.host,
           inputSelector: a.inputSelector ?? (Array.isArray(a.selectors) ? a.selectors.join(',') : a.selectors),
           submitSelector: a.submitSelector ?? (Array.isArray(a.sendBtns) ? a.sendBtns.join(',') : a.sendBtns)
         }));
-
         ADAPTERS_CACHE = [...normalizedCustom, ...builtInAdapters];
-        console.log("VoiceMux: Adapters loaded", ADAPTERS_CACHE);
       } catch (e) {
         console.error("VoiceMux: Failed to load adapters", e);
       } finally {
-        loadPromise = null; // Reset for potential future forced reloads
+        loadPromise = null;
       }
     })();
-
     return loadPromise;
   }
 
-  // Listen for storage changes to sync adapters in real-time
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'local' && changes.custom_adapters) {
-      console.log("VoiceMux: Custom adapters updated, reloading...");
       loadAdapters();
     }
   });
-
-  // Start loading immediately
   loadAdapters();
 
   // ★ Target Selection
-  /** Identifies the best input element and its corresponding adapter for the current page context. */
   async function getTargetAndAdapter() {
     const url = window.location.href;
-    
-    // Ensure adapters are loaded
     if (ADAPTERS_CACHE.length === 0) await loadAdapters();
-
-    // Find matching adapter for this host
     const adapter = ADAPTERS_CACHE.find(a => a.host && url.includes(a.host));
-
-    // 1. Highest Priority: Active Element (If it's an input/editable)
     const active = document.activeElement;
     if (active && 
         (active.isContentEditable || 
@@ -84,98 +70,45 @@ if (window.VOICEMUX_INITIALIZED) {
          (active.tagName === 'INPUT' && !['checkbox', 'radio', 'button', 'submit'].includes(active.type)))) {
       return { target: active, adapter: adapter || { name: 'active-element' } };
     }
-
-    // 2. Secondary: Try to find a matching element via Adapter selector
     if (adapter) {
       const el = document.querySelector(adapter.inputSelector);
       if (el) return { target: el, adapter: adapter };
     }
-
-    // 3. Last Resort: Find first textarea or contenteditable
     const firstInput = document.querySelector('textarea, div[contenteditable="true"]');
     if (firstInput) {
         return { target: firstInput, adapter: { name: 'last-resort' } };
     }
-    
     return { target: null, adapter: null };
   }
 
-  // Crypto Helpers
-  /** Imports the raw AES-GCM decryption key from storage. */
-  async function getDecryptionKey() {
-    const data = await chrome.storage.local.get('voicemux_key');
-    if (!data.voicemux_key) return null;
-    const rawKey = Uint8Array.from(safeAtob(data.voicemux_key), c => c.charCodeAt(0));
-    return await crypto.subtle.importKey("raw", rawKey, "AES-GCM", true, ["decrypt"]);
-  }
-
-  /** Decrypts the received payload (ciphertext/iv) and returns plaintext string. */
-  async function decrypt(payload) {
-    if (!payload.ciphertext || !payload.iv) return payload.text || "";
-    try {
-      const key = await getDecryptionKey();
-      if (!key) throw new Error("Key not found");
-      const iv = Uint8Array.from(safeAtob(payload.iv), c => c.charCodeAt(0));
-      const ciphertext = Uint8Array.from(safeAtob(payload.ciphertext), c => c.charCodeAt(0));
-      const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext);
-      return new TextDecoder().decode(decrypted);
-    } catch (e) {
-      console.error("[E2EE] Decryption failed:", e);
-      return "[Decryption Error]";
-    }
-  }
-
   /** 
-   * Injects text into a target element, bypassing modern framework state tracking. 
-   * 
-   * Implementation Intent:
-   * - TEXTAREA/INPUT: Uses a prototype-level native setter hack to bypass React/Vue internal state.
-   * - ContentEditable: Uses direct textContent assignment combined with a synthetic InputEvent.
-   *   This ensures high compatibility with complex editors like Gmail, Gemini, and ChatGPT 
-   *   without destroying the underlying DOM structure or losing focus.
+   * Injects text into a target element. 
    */
   function forceInject(element, text) {
     if (!element) return;
     element.focus();
-    
     if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
-      // React/Vue Hack: Call native value setter to bypass state tracking
       const proto = element.tagName === 'INPUT' ? window.HTMLInputElement.prototype : window.HTMLTextAreaElement.prototype;
       const nativeSetter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
-      
       if (nativeSetter) {
           nativeSetter.call(element, text);
       } else {
           element.value = text;
       }
     } else if (element.isContentEditable) {
-        // ContentEditable (Gmail, Gemini, ChatGPT, etc.)
-        // Combination of property setting + InputEvent ensures frameworks catch the change.
         try {
             element.textContent = text;
-            
-            // Dispatch InputEvent to signal a change to the app's internal model.
-            const inputEvent = new InputEvent('input', {
-                bubbles: true,
-                cancelable: true,
-                inputType: 'insertText',
-                data: text
-            });
+            const inputEvent = new InputEvent('input', { bubbles: true, cancelable: true, inputType: 'insertText', data: text });
             element.dispatchEvent(inputEvent);
         } catch (e) {
-            console.error("VoiceMux: Injection failed, trying fallback", e);
             element.innerText = text;
         }
     }
-
-    // Dispatch standard events for simpler/legacy listeners
     element.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
     element.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
-    
     moveCursorToEnd(element);
   }
 
-  /** Positions the text cursor at the end of the input or contenteditable element. */
   function moveCursorToEnd(element) {
     if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
       element.selectionStart = element.selectionEnd = element.value.length;
@@ -191,7 +124,6 @@ if (window.VOICEMUX_INITIALIZED) {
     }
   }
 
-  /** Dispatches a sequence of Enter key events to the target element to trigger submission. */
   function triggerEnter(target) {
       const opts = { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true, composed: true, view: window };
       target.dispatchEvent(new KeyboardEvent('keydown', opts));
@@ -199,74 +131,36 @@ if (window.VOICEMUX_INITIALIZED) {
       target.dispatchEvent(new KeyboardEvent('keyup', opts));
   }
 
-  // ★ Hub Synchronization (KNC ID Support)
-  /** 
-   * Detects authentication info from hub.knc.jp and syncs it with the background script.
-   * DESIGN INTENT: Zero-config pairing by reading the Hub's active session.
-   */
-  function syncWithHub() {
-    if (!window.location.hostname.includes("hub.knc.jp")) return;
-
-    const authEl = document.getElementById("voicemux-bridge-auth");
-    if (authEl) {
-      const { uuid, token, key } = authEl.dataset;
-      if (uuid && token && key) {
-        chrome.runtime.sendMessage({
-          action: "sync_auth",
-          payload: { uuid, token, key }
-        }).catch(() => {});
-      }
-    }
-  }
-
-  // Poll for auth info (since it might be added/updated dynamically)
-  if (window.location.hostname.includes("hub.knc.jp")) {
-    setInterval(syncWithHub, 2000);
-    syncWithHub();
-  }
-
-  // Message Listener (Simplified for Plaintext)
+  // ★ Message Listener (Plaintext from Background)
   chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
+    // Prevent feedback loops on Hub/localhost dev
+    const isHub = window.location.hostname.includes("hub.knc.jp") || 
+                  (window.location.hostname === "localhost" && window.location.port === "5173");
+    if (isHub) return;
+
     const { target, adapter } = await getTargetAndAdapter();
-    
-    if (!target) {
-        console.warn("VoiceMux: No suitable input target found.");
-        return;
-    }
+    if (!target) return;
 
-    // Now receiving plaintext directly from background.js
     const plaintext = request.plaintext;
-
     if (request.action === "update_text") {
       forceInject(target, plaintext);
     } else if (request.action === "confirm_send") {
       forceInject(target, plaintext);
-      
       setTimeout(() => {
-          // Case 1: Explicitly set to not submit (null)
-          if (adapter && adapter.submitSelector === null) {
-              console.log("VoiceMux: Submit skipped (configured as null).");
-              return;
-          }
-
-          // Case 2: Try to find submit button via selector
+          if (adapter && adapter.submitSelector === null) return;
           let btn = null;
           if (adapter && adapter.submitSelector) {
               btn = document.querySelector(adapter.submitSelector);
           }
-
-          // Case 3: Click if found, otherwise fallback to Enter
           if (btn && !btn.disabled) {
               btn.click();
           } else {
-              // Fallback: Press Enter
               triggerEnter(target);
           }
       }, 100);
     }
   });
 
-  /** Signals the background script to check or re-establish the WebSocket connection. */
   function safeCheckConnection() {
     if (chrome.runtime?.id) {
       chrome.runtime.sendMessage({ action: "check_connection" }).catch(() => {});

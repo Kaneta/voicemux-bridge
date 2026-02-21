@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "VoiceMux Bridge",
-  "version": "1.6.1",
-  "description": "VoiceMux Pairing with QR Code and Custom Adapters",
+  "version": "2.0.0",
+  "description": "VoiceMux Pairing with Direct Secure Push Sync and Custom Adapters",
   "permissions": [
     "activeTab",
     "storage",
@@ -19,6 +19,12 @@
     "default_icon": {
       "128": "icon128.png"
     }
+  },
+  "externally_connectable": {
+    "matches": [
+      "https://hub.knc.jp/*",
+      "http://localhost/*"
+    ]
   },
   "options_page": "options.html",
   "background": {
