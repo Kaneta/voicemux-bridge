@@ -1,0 +1,87 @@
+{
+  "name": {
+    "message": "VoiceMux Bridge"
+  },
+  "description": {
+    "message": "直接的かつ安全なプッシュ同期とカスタムアダプターを備えた VoiceMux ペアリング"
+  },
+  "tagline": {
+    "message": "スマートフォンをリモートマイクとして活用"
+  },
+  "waiting_hub_main": {
+    "message": "まずは Web サイトと連携しましょう"
+  },
+  "waiting_hub_sub": {
+    "message": "VoiceMux Hub サイトを一度開くと、この画面にペアリング用の QR コードが表示されます。"
+  },
+  "btn_open_hub": {
+    "message": "🚀 Hub を開いて連携する"
+  },
+  "ready_to_sync": {
+    "message": "ペアリングの準備完了"
+  },
+  "sync_instruction": {
+    "message": "スマホでスキャンして、入力を開始しましょう"
+  },
+  "btn_copy_link": {
+    "message": "リンクをコピー"
+  },
+  "btn_copy_success": {
+    "message": "コピーしました！"
+  },
+  "btn_manage_librarian": {
+    "message": "🪄 誤認識の修正・プロンプト生成"
+  },
+  "link_support": {
+    "message": "サポート"
+  },
+  "link_guide": {
+    "message": "ガイド"
+  },
+  "url_guide": {
+    "message": "https://knc.jp/ja/docs/voicemux-bridge/"
+  },
+  "link_privacy": {
+    "message": "プライバシー"
+  },
+  "room_label": {
+    "message": "ルーム: $ROOM_ID$",
+    "placeholders": {
+      "room_id": {
+        "content": "$1"
+      }
+    }
+  },
+  "room_loading": {
+    "message": "ルーム: 読み込み中..."
+  },
+  "footer_secure": {
+    "message": "🔐 セキュアなプッシュ同期が有効です"
+  },
+  "options_title": {
+    "message": "VoiceMux 設定"
+  },
+  "options_header": {
+    "message": "カスタムサイトアダプター"
+  },
+  "options_description": {
+    "message": "お気に入りのサイト用にカスタム CSS セレクターを定義します。作成済みの設定は <a href=\"https://github.com/Kaneta/voicemux-bridge/blob/main/docs/community-adapters.md\" target=\"_blank\">Community Adapters Catalog</a> で確認できます。"
+  },
+  "btn_save_config": {
+    "message": "設定を保存"
+  },
+  "status_saved": {
+    "message": "設定を保存しました"
+  },
+  "example_structure": {
+    "message": "構成例:"
+  },
+  "invalid_json_format": {
+    "message": "無効な JSON 形式です: $ERROR$",
+    "placeholders": {
+      "error": {
+        "content": "$1"
+      }
+    }
+  }
+}

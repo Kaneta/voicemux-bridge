@@ -4,72 +4,76 @@ This report explains how VoiceMux Bridge ensures that your data remains private 
 
 ---
 
-## 1. Local Key Generation
-The encryption key (AES-GCM 256-bit) is generated directly within your browser extension and is never sent to our servers.
+## 1. Local Key Generation and Secure Transfer
+The encryption key (AES-GCM 128-bit) is generated within [VoiceMux Hub](https://hub.knc.jp) and securely pushed to the extension via the official browser messaging API. It is never sent to our servers.
 
-**Source: `background.js`**
+**Source: `background.js` (Receiver side)**
 ```javascript
-// Line 36: Generating the key using the standard Web Crypto API
-const key = await crypto.subtle.generateKey(
-  { name: "AES-GCM", length: 256 },
-  true,
-  ["encrypt", "decrypt"]
-);
-
-// Lines 43-45: Exporting and storing the key ONLY in local storage
-keyBase64 = btoa(String.fromCharCode(...new Uint8Array(exportedKey)));
-await chrome.storage.local.set({ 'voicemux_key': keyBase64 });
+// Around line 155: Listening for credential push from the Hub
+chrome.runtime.onMessageExternal.addListener((request, sender, sendResponse) => {
+  if (request.action === "SYNC_AUTH") {
+    const { uuid, token, key } = request.payload;
+    
+    // Storing in the extension's private secure storage
+    chrome.storage.local.set({
+      'voicemux_room_id': uuid,
+      'voicemux_token': token,
+      'voicemux_key': key
+    }, () => { ... });
+  }
+});
 ```
-The key is stored in `chrome.storage.local`, an isolated storage area that websites and external servers cannot access.
+The key is stored in `chrome.storage.local`, an isolated storage area provided by the browser that websites and external servers cannot access.
 
 ---
 
 ## 2. Zero-Knowledge Key Exchange
 We use URL hash fragments to share keys between your PC and smartphone without the server ever seeing the key.
 
-**Source: `background.js`**
+**Source: `popup.js`**
 ```javascript
-// Line 80: Constructing the pairing URL
-console.log(`E2EE Pairing URL: https://v.knc.jp/z/${roomId}?token=${token}#key=${keyBase64}`);
+// Around line 45: Constructing the pairing URL
+let pairingUrl = `${hubOrigin}/${roomId}/zen`;
+pairingUrl += `?token=${token}&uuid=${roomId}`;
+pairingUrl += `#key=${keyBase64}`; // Key is included in the hash
 ```
 The key is placed after the `#` symbol. By technical design, **anything after the `#` (hash fragment) is handled exclusively by the browser and is NEVER sent to the server.**
 
 ---
 
 ## 3. Client-Side Decryption
-The extension receives only encrypted blobs from the relay server. The actual decryption happens locally inside the extension.
+The extension receives only encrypted blobs from the relay server. The actual decryption happens locally inside the extension's background process.
 
-**Source: `content.js`**
+**Source: `background.js`**
 ```javascript
-// Line 113: The decryption function
+// Around line 43: The core decryption logic
 async function decrypt(payload) {
   // Receives only ciphertext and IV (Initialization Vector)
   if (!payload.ciphertext || !payload.iv) return payload.text || "";
   
   try {
-    const key = await getDecryptionKey(); // Retrieve key from local storage
+    const key = await getDecryptionKey(); // Import key from local storage
     const iv = Uint8Array.from(safeAtob(payload.iv), c => c.charCodeAt(0));
     const ciphertext = Uint8Array.from(safeAtob(payload.ciphertext), c => c.charCodeAt(0));
 
-    // Line 123: Decrypting the ciphertext locally
+    // AES-GCM decryption using the Web Crypto API
     const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext);
     
-    // Returns the plaintext only to the content script
+    // Returns the plaintext only to the active browser tab
     return new TextDecoder().decode(decrypted);
   } catch (e) {
-    // If the key is missing or incorrect, decryption fails
-    console.error("[E2EE] Decryption failed:", e);
+    // If the key is missing or incorrect, decryption is mathematically impossible
     return "[Decryption Error]";
   }
 }
 ```
-The relay server only sees the `ciphertext` string, which is mathematically impossible to read without the key stored on your devices.
+The relay server only sees the `ciphertext` string, which acts as noise. It has no mathematical means to read your data.
 
 ---
 
 ## 4. Conclusion
 Based on the implementation above:
-1. **Exclusive Access:** Only you possess the encryption keys.
+1. **Exclusive Access:** Only you possess the encryption keys on your devices.
 2. **Secure Transport:** Keys never touch the network or the server.
 3. **Transparent Logic:** Since the extension is open-source, anyone can verify that we do not leak data or bypass encryption.
 
@@ -81,19 +85,18 @@ Based on the implementation above:
 ### A. Inspect the installed files on your disk
 Chrome stores the source code of installed extensions on your local machine.
 
-- **Windows**: `%LOCALAPPDATA%\Google\Chrome\User Data\Default\Extensions\agkglknmadfhdfobmgecllpgoecebdip`
-- **Mac**: `~/Library/Application Support/Google/Chrome/Default/Extensions/agkglknmadfhdfobmgecllpgoecebdip`
-- **Linux**: `~/.config/google-chrome/Default/Extensions/agkglknmadfhdfobmgecllpgoecebdip`
+- **Windows**: `%LOCALAPPDATA%\Google\Chrome\User Data\Default\Extensions\omdfoongpifbbhapnpbocfoijkglegpd`
+- **Mac**: `~/Library/Application Support/Google/Chrome/Default/Extensions/omdfoongpifbbhapnpbocfoijkglegpd`
+- **Linux**: `~/.config/google-chrome/Default/Extensions/omdfoongpifbbhapnpbocfoijkglegpd`
 
 You can open the JS files (`background.js`, `content.js`, etc.) in these folders and compare them with the GitHub repository. VoiceMux Bridge does not minify or obfuscate its code, making comparison easy.
 
-### B. Use Browser Developer Tools
-1. Open any website where the extension is active (e.g., Gemini).
-2. Press `F12` (or Right-click > Inspect) to open Developer Tools.
-3. Go to the **"Sources"** tab.
-4. In the left pane, look for **"Content Scripts"** > **"VoiceMux Bridge"**. You can read the `content.js` file that is currently executing on that page.
+### B. Inspect the Running Background Code
+1. Open `chrome://extensions` in your browser.
+2. Click the **"Service Worker"** link for VoiceMux Bridge.
+3. Developer Tools will open, allowing you to read the `background.js` source code currently in execution.
 
 VoiceMux Bridge proves its integrity through total transparency.
 
 ---
-*Last Updated: 2026-02-17*
+*Last Updated: 2026-02-21 (v2.1.0)*

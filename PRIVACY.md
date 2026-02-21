@@ -1,13 +1,13 @@
 # Privacy Policy for VoiceMux Bridge
 
-Last updated: 2026-02-02
+Last updated: 2026-02-21
 
 ## 1. Data Collection
 VoiceMux Bridge does **not** collect, store, or transmit any personal data, keystrokes, or browsing history to our servers.
 
 ## 2. End-to-End Encryption (E2EE)
-All data transmitted from your mobile device to this extension is encrypted using Client-Side AES-GCM (256-bit).
-- **Decryption Keys**: These keys are generated locally within your browser and stored in `chrome.storage.local`.
+All data transmitted from your mobile device to this extension is encrypted using Client-Side AES-GCM (128-bit).
+- **Decryption Keys**: These keys are generated within VoiceMux Hub and securely pushed to the extension via the browser's internal messaging API. They are stored in `chrome.storage.local`.
 - **Zero-Knowledge**: Keys are shared with your mobile device via URL hash fragments (`#key=...`). These fragments are handled exclusively by the browser and are never sent to any server by design.
 
 ## 3. Permissions

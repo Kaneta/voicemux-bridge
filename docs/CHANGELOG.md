@@ -2,8 +2,9 @@
 
 All notable changes to **VoiceMux Bridge** will be documented in this file.
 
-## [1.7.0] - 2026-02-21
+## [2.1.0] - 2026-02-21
 ### Added
+- **Multi-language Support (i18n)**: Full support for English and Japanese locales.
 - **KNC ID Stateless Auth**: Implemented automatic session synchronization with `hub.knc.jp`. Pairing is now handled seamlessly without manual configuration.
 - **Centralized Decryption**: Moved E2EE decryption logic to the Background Service Worker for enhanced security. Content scripts now handle only plaintext data.
 - **Integrated Pairing**: Updated the extension popup and QR code to point to the modern Zen UI on `hub.knc.jp`.

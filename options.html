@@ -139,10 +139,10 @@
     }
   </style>
 </head>
-<body>
+<body data-i18n-title="options_title">
   <div class="card">
-    <h1>Custom Site Adapters</h1>
-    <p>Define custom CSS selectors for your favorite sites. You can find pre-made configurations in our <a href="https://github.com/Kaneta/voicemux-bridge/blob/main/docs/community-adapters.md" target="_blank">Community Adapters Catalog</a>.</p>
+    <h1 data-i18n="options_header">Custom Site Adapters</h1>
+    <p data-i18n="options_description">Define custom CSS selectors for your favorite sites. You can find pre-made configurations in our <a href="https://github.com/Kaneta/voicemux-bridge/blob/main/docs/community-adapters.md" target="_blank">Community Adapters Catalog</a>.</p>
     
     <textarea id="custom-adapters" spellcheck="false" placeholder='[
   {
@@ -153,11 +153,11 @@
   }
 ]'></textarea>
 
-    <button id="save" class="btn-save">Save Configuration</button>
-    <div id="status" class="status">Settings saved successfully</div>
+    <button id="save" class="btn-save" data-i18n="btn_save_config">Save Configuration</button>
+    <div id="status" class="status" data-i18n="status_saved">Settings saved successfully</div>
 
     <div class="example-box">
-      <strong>Example Structure:</strong><br>
+      <strong data-i18n="example_structure">Example Structure:</strong><br>
       <code>[{"name": "Slack", "host": "slack.com", "inputSelector": ".ql-editor", "submitSelector": "button.c-button-unstyled"}]</code>
     </div>
   </div>

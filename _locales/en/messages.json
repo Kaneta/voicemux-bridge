@@ -1,0 +1,87 @@
+{
+  "name": {
+    "message": "VoiceMux Bridge"
+  },
+  "description": {
+    "message": "VoiceMux Pairing with Direct Secure Push Sync and Custom Adapters"
+  },
+  "tagline": {
+    "message": "Smartphone as a Remote Mic"
+  },
+  "waiting_hub_main": {
+    "message": "First, let's link with the Hub"
+  },
+  "waiting_hub_sub": {
+    "message": "Once you open the VoiceMux Hub site, the pairing QR code will appear here automatically."
+  },
+  "btn_open_hub": {
+    "message": "🚀 Open Hub to Link"
+  },
+  "ready_to_sync": {
+    "message": "Ready to Pair!"
+  },
+  "sync_instruction": {
+    "message": "Scan with your phone to start input."
+  },
+  "btn_copy_link": {
+    "message": "Copy Link"
+  },
+  "btn_copy_success": {
+    "message": "Copied!"
+  },
+  "btn_manage_librarian": {
+    "message": "🪄 Fix Errors & Generate Prompts"
+  },
+  "link_support": {
+    "message": "Support"
+  },
+  "link_guide": {
+    "message": "Guide"
+  },
+  "url_guide": {
+    "message": "https://knc.jp/en/docs/voicemux-bridge/"
+  },
+  "link_privacy": {
+    "message": "Privacy"
+  },
+  "room_label": {
+    "message": "Room: $ROOM_ID$",
+    "placeholders": {
+      "room_id": {
+        "content": "$1"
+      }
+    }
+  },
+  "room_loading": {
+    "message": "Room: Loading..."
+  },
+  "footer_secure": {
+    "message": "🔐 Secure Push-Sync Enabled"
+  },
+  "options_title": {
+    "message": "VoiceMux Settings"
+  },
+  "options_header": {
+    "message": "Custom Site Adapters"
+  },
+  "options_description": {
+    "message": "Define custom CSS selectors for your favorite sites. You can find pre-made configurations in our <a href=\"https://github.com/Kaneta/voicemux-bridge/blob/main/docs/community-adapters.md\" target=\"_blank\">Community Adapters Catalog</a>."
+  },
+  "btn_save_config": {
+    "message": "Save Configuration"
+  },
+  "status_saved": {
+    "message": "Settings saved successfully"
+  },
+  "example_structure": {
+    "message": "Example Structure:"
+  },
+  "invalid_json_format": {
+    "message": "Invalid JSON format: $ERROR$",
+    "placeholders": {
+      "error": {
+        "content": "$1"
+      }
+    }
+  }
+}

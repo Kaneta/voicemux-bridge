@@ -1,70 +1,68 @@
 # VoiceMux Bridge User Guide 🛰️
 
 Welcome to VoiceMux Bridge!
-This extension acts as a bridge between your smartphone's familiar keyboard and your desktop AI agents (Gemini, ChatGPT, etc.), allowing you to input text with the speed of thought.
+This extension allows you to use your smartphone's familiar keyboard to type seamlessly into any input field on your PC (ChatGPT, Gemini, Gmail, Slack, etc.).
 
-No complex setup required. Let's take the first step together with this guide.
-
----
-
-> ⚠️ **Important: Initial Setup Note**
-> 
-> After installing or updating VoiceMux Bridge, the extension will not work on tabs that were already open (like ChatGPT or Gemini).
-> 
-> To ensure it works correctly, **please "Refresh (Reload)" the website page you wish to use.**
+No complex setup is required. Let's get started!
 
 ---
 
-## 1. Setup: Connect your Smartphone (Pairing)
+## 1. Preparation: Sync with the Hub
 
-First, securely connect your PC and smartphone.
+First, enable the extension.
 
-1.  Click the **VoiceMux icon (microphone stand)** in the top right of your PC browser.
-2.  A QR code will appear. Scan it with your **smartphone camera**.
-3.  Once the dedicated page opens on your phone, you're ready!
+1.  Open [VoiceMux Hub](https://hub.knc.jp) on your PC.
+2.  As soon as the site opens, your secure credentials will be automatically synced to this extension.
+3.  Click the **VoiceMux icon (microphone stand mark)** in the top right of your browser.
+4.  If you see "Ready to Pair!" and a QR code, you're all set!
 
-**Connected!** Your smartphone and PC are now linked via a private channel protected by strong encryption (E2EE).
-
----
-
-## 2. Usage: Speak into your Phone
-
-The best part of VoiceMux is using your phone's native **voice input (Gboard, iOS dictation)** directly on your PC.
-
-1.  Open your preferred AI (ChatGPT, Gemini, etc.) on your PC.
-2.  Tap the input field on your smartphone to bring up the keyboard.
-3.  Press the **microphone button** on your keyboard and speak into your phone.
-4.  Once you stop, your words will instantly appear in the input field on your PC!
-
-> 💡 **Tip**: This app relays any text entered on your phone. Beyond voice input, you can also use flick input or copy-paste text from your phone to your PC.
+> 💡 **Tip**: "Pin" the icon to your toolbar for instant access to the QR code.
 
 ---
 
-## 3. Freedom: Use on Any Site
+## 2. Connect: Pair with Your Smartphone
 
-VoiceMux works on sites beyond AI (internal systems, blogs, etc.).
+1.  Scan the displayed **QR code** with your smartphone's camera.
+2.  Once the dedicated input page opens on your phone, pairing is complete.
 
-1.  While on the site you want to use, click the **VoiceMux icon** once on your PC.
-2.  This enables VoiceMux to detect the input field on that specific page.
-
-*If a site doesn't work as expected, you can configure custom settings in the [Options] page.*
+Your smartphone and PC are now connected via a private channel protected by strong End-to-End Encryption (E2EE).
 
 ---
 
-## 4. Privacy & Security
+## 3. Usage: Talk to Your Phone
+
+The best part of VoiceMux is using **"Gboard" or "iPhone Voice Dictation"** directly on your PC.
+
+1.  On your PC, click into any text input field (ChatGPT, Gmail, etc.) where you want to type.
+2.  Tap the input area on your phone to bring up the keyboard.
+3.  Press the **"Microphone button"** on your keyboard and speak to your phone.
+4.  When you stop speaking... your words will appear directly at your PC's cursor position!
+
+---
+
+## 4. Advance: Grow Your Dictionary
+
+VoiceMux Hub helps you fix common misrecognitions of technical terms or names.
+
+*   **Error Correction**: Fixing text in the Hub editor teaches the AI to be smarter next time.
+*   **Prompt Generation**: Click **"🪄 Fix Errors & Generate Prompts"** at the bottom of the extension to open the Hub and optimize your input for AI assistants.
+
+---
+
+## 5. Privacy & Security
 
 VoiceMux prioritizes your privacy.
-*   **Your text is private**: Data is encrypted end-to-end between your phone and PC. Not even the relay server can read your content.
-*   **Avoid passwords**: While secure, we recommend typing sensitive passwords directly on your PC rather than via smartphone.
+*   **Private Data**: Your text is encrypted directly between your phone and PC. Not even our servers can read it.
+*   **Offline Cache**: Once synced, you don't need to open the Hub site anymore. Just click the extension icon to start pairing instantly using cached credentials.
 
 ---
 
-## 5. Troubleshooting
+## 6. Troubleshooting
 
-*   **QR code won't appear**: Refresh the browser tab and try clicking the icon again.
-*   **Text isn't appearing**: Ensure you have clicked the input field on your PC so the cursor is blinking.
+*   **No QR Code**: Try refreshing [VoiceMux Hub](https://hub.knc.jp) and then click the extension icon again.
+*   **Text Not Appearing**: Make sure you've clicked inside a text field on your PC and that the cursor is active.
 
 ---
 
-We hope VoiceMux makes your daily work and creative flow smoother!
-Feel free to refer back to this guide whenever needed.
+We hope VoiceMux makes your daily work and creative sessions smoother and more enjoyable!
+Feel free to return to this guide whenever you need help.

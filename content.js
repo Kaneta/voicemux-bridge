@@ -1,9 +1,9 @@
-// VoiceMux Bridge Content Script v3.0 (Clean Architecture)
+// VoiceMux Bridge Content Script v2.1.0 (Clean Architecture)
 if (window.VOICEMUX_INITIALIZED) {
   console.log("VoiceMux: Already initialized in this tab.");
 } else {
   window.VOICEMUX_INITIALIZED = true;
-  console.log("VoiceMux Bridge v3.0 Loaded");
+  console.log("VoiceMux Bridge v2.1.0 Loaded");
 
   /**
    * decodes Base64 strings safely.
