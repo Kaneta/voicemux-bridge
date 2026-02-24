@@ -14,10 +14,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // 1. Retrieve credentials from storage
   async function updateUI() {
-    const data = await chrome.storage.local.get(['voicemux_room_id', 'voicemux_token', 'voicemux_key', 'voicemux_hub_url']);
+    const data = await chrome.storage.local.get(['voicemux_room_id', 'voicemux_token', 'voicemux_key', 'voicemux_hub_url', 'voicemux_paired']);
     const roomId = data.voicemux_room_id;
     const token = data.voicemux_token;
     const keyBase64 = data.voicemux_key;
+    const isPaired = data.voicemux_paired;
     
     let hubOrigin = 'https://hub.knc.jp';
     try {
@@ -31,15 +32,39 @@ document.addEventListener('DOMContentLoaded', async () => {
       unlinkedView.style.display = "none";
       statusIndicator.classList.add("online");
 
+      // Check for active pairing success
+      if (isPaired) {
+        linkedView.innerHTML = `
+          <div class="success-animation">
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+          </div>
+          <h2 class="ready-msg" style="color: #10b981;">Paired Successfully!</h2>
+          <p class="sync-instruction">Your phone is now connected as a mic.</p>
+          <button id="btn-close-popup" class="btn-tonal" style="width: 100%; margin-top: 12px; background-color: #10b981; color: white;">
+            Done (Close)
+          </button>
+        `;
+        document.getElementById("btn-close-popup").onclick = () => window.close();
+        return;
+      }
+
       // Update Hub Link
       if (hubLink) hubLink.href = `${hubOrigin}/welcome`;
 
       // Construct Pairing URL
-      let pairingUrl = `${hubOrigin}/${roomId}/zen`;
-      pairingUrl += `?token=${token}&uuid=${roomId}`;
+      // DESIGN INTENT: Minimize URL length to reduce QR density.
+      // 1. Remove redundant uuid param.
+      // 2. Use pure black for max contrast.
+      // 3. Lower error correction to 'M' for larger dots.
+      let pairingUrl = `${hubOrigin}/${roomId}`;
+      pairingUrl += `?mode=zen&token=${token}`;
       pairingUrl += `#key=${keyBase64}`;
       
-      roomIdDisplay.innerText = chrome.i18n.getMessage("room_label", [roomId]);
+      const displayRoomId = roomId.substring(0, 4).toUpperCase();
+      roomIdDisplay.innerText = displayRoomId;
       qrcodeLink.href = pairingUrl;
 
       // Handle Copy Button
@@ -63,9 +88,9 @@ document.addEventListener('DOMContentLoaded', async () => {
           text: pairingUrl,
           width: 160,
           height: 160,
-          colorDark: "#6750A4",
+          colorDark: "#000000",
           colorLight: "#ffffff",
-          correctLevel: QRCode.CorrectLevel.H
+          correctLevel: QRCode.CorrectLevel.M
         });
       }
 
@@ -86,10 +111,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Initial update
   updateUI();
+  
+  // DESIGN INTENT: Reset pairing flag when opening to allow future re-pairs
+  chrome.storage.local.set({ 'voicemux_paired': false });
 
   // Listen for storage changes
   chrome.storage.onChanged.addListener((changes, namespace) => {
-    if (namespace === 'local' && (changes.voicemux_room_id || changes.voicemux_token)) {
+    if (namespace === 'local' && (changes.voicemux_room_id || changes.voicemux_token || changes.voicemux_paired)) {
       updateUI();
     }
   });

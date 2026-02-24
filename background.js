@@ -108,6 +108,11 @@ async function connect() {
               }).catch(() => {});
             }
           });
+        } else if (eventName === "device_online") {
+          // DESIGN INTENT: Feedback loop.
+          // Another device (the phone) just joined.
+          console.log("VoiceMux: Remote device detected. Pairing successful!");
+          chrome.storage.local.set({ 'voicemux_paired': true });
         }
       }
     };
@@ -156,7 +161,7 @@ chrome.runtime.onMessageExternal.addListener((request, sender, sendResponse) => 
   if (request.action === "SYNC_AUTH") {
     const { uuid, token, key } = request.payload;
     
-    console.log("[Auth] Sync received from Hub.");
+    console.log(`[Auth] Sync received from Hub. UUID: ${uuid.substring(0, 8)}... Token: ${token.substring(0, 10)}...`);
     chrome.storage.local.set({
       'voicemux_room_id': uuid,
       'voicemux_token': token,

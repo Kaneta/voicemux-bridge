@@ -14,3 +14,9 @@ STORE_DESCRIPTION_*.txt
 # Internal drafting files
 DRAFT_*
 MEMO_*
+
+# AI Management Tools (Local Only)
+gen_map.sh
+gen_diff_context.sh
+docs/core/
+docs/progress/
