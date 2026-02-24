@@ -1,11 +1,36 @@
-// VoiceMux Popup JS (v2.1.0 Finalized UI)
+// VoiceMux Popup JS (v2.1.1 Finalized UI)
 document.addEventListener('DOMContentLoaded', async () => {
   // Localization
   localize();
 
-  const unlinkedView = document.getElementById("unlinked-view");
-  const linkedView = document.getElementById("linked-view");
-  const qrcodeContainer = document.getElementById("qrcode");
+  // Version Display
+  const versionDisplay = document.getElementById("version-display");
+  if (versionDisplay) {
+    versionDisplay.innerText = `v${chrome.runtime.getManifest().version}`;
+  }
+
+    const unlinkedView = document.getElementById("unlinked-view");
+    const linkedView = document.getElementById("linked-view");
+  
+    // System Status Check (Non-blocking)
+    try {
+      const statusRes = await fetch("https://v.knc.jp/api/status");
+      if (statusRes.ok) {
+        const status = await statusRes.json();
+        if (status.is_maintenance) {
+          const notice = document.getElementById("maintenance-notice");
+          const link = document.getElementById("maintenance-link");
+          if (notice && link) {
+            notice.style.display = "block";
+            link.href = status.info_url;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("VoiceMux: Failed to fetch system status.");
+    }
+  
+    const qrcodeContainer = document.getElementById("qrcode");
   const qrcodeLink = document.getElementById("qrcode-link");
   const roomIdDisplay = document.getElementById("room-id");
   const btnOpenHub = document.getElementById("btn-open-hub");

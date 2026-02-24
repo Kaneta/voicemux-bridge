@@ -3,7 +3,9 @@ if (window.VOICEMUX_INITIALIZED) {
   console.log("VoiceMux: Already initialized in this tab.");
 } else {
   window.VOICEMUX_INITIALIZED = true;
-  console.log("VoiceMux Bridge v2.1.0 Loaded");
+  console.group("VoiceMux Bridge v2.2.4");
+  console.log("Status: Content Script Loaded");
+  console.groupEnd();
 
   /**
    * decodes Base64 strings safely.
@@ -90,7 +92,7 @@ if (window.VOICEMUX_INITIALIZED) {
   document.addEventListener('mousedown', () => lastUserInteraction = Date.now(), true);
 
   /** 
-   * Hybrid Text Injection: v1.4 Stability + v2.1.1 Adaptability
+   * Hybrid Text Injection: v1.4 Stability + v2.2.2 Mirroring
    */
   function forceInject(element, text) {
     if (!element) return;
@@ -101,16 +103,16 @@ if (window.VOICEMUX_INITIALIZED) {
       return;
     }
 
-    const current = element.tagName === 'TEXTAREA' || element.tagName === 'INPUT' ? element.value : element.innerText;
-    if (current === text) return;
+    // 1. Robust comparison (Check multiple text properties to avoid redundant churn)
+    const val = (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT' ? element.value : (element.innerText || element.textContent)) || "";
+    if (val.trim() === text.trim()) return;
 
-    console.log(`VoiceMux: Injecting into ${element.tagName}. Method: ${element.isContentEditable ? 'SmartPaste' : 'SetterHack'}`);
+    console.log(`VoiceMux: Mirroring into ${element.tagName}. New Length: ${text.length}`);
     element.focus();
 
     try {
       if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
-        // --- v1.4 PROTOTYPE SETTER HACK (Ultra-Stable) ---
-        // DESIGN INTENT: Bypass framework interception by calling the native value setter.
+        // --- v1.4 PROTOTYPE SETTER HACK ---
         const proto = element.tagName === 'INPUT' ? window.HTMLInputElement.prototype : window.HTMLTextAreaElement.prototype;
         const nativeSetter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
         
@@ -120,38 +122,42 @@ if (window.VOICEMUX_INITIALIZED) {
           element.value = text;
         }
       } else if (element.isContentEditable) {
-        // --- v2.1.1 SMART PASTE SIMULATION ---
-        // DESIGN INTENT: Emulate a real clipboard paste for complex Rich Text editors.
-        const dataTransfer = new DataTransfer();
-        dataTransfer.setData('text/plain', text);
-
-        // Select all to replace
-        const selection = window.getSelection();
-        const range = document.createRange();
-        range.selectNodeContents(element);
-        selection.removeAllRanges();
-        selection.addRange(range);
-
-        const pasteEvent = new ClipboardEvent('paste', {
-          clipboardData: dataTransfer,
-          bubbles: true,
-          cancelable: true
-        });
+        // --- v2.2.4 ATOMIC MIRRORING ---
+        // DESIGN INTENT: Aggressive Clear + Insert.
+        // Modern editors often hijack 'selectAll' or 'paste'. 
+        // By selecting and DELETING before insertion, we force the editor
+        // to treat it as a fresh start, preventing duplication.
         
-        if (element.dispatchEvent(pasteEvent)) {
-          // If not intercepted, fallback to execCommand
-          document.execCommand('insertText', false, text);
+        const selection = window.getSelection();
+        if (selection) {
+          // Double-strength selection
+          document.execCommand('selectAll', false, null);
+          const range = document.createRange();
+          range.selectNodeContents(element);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
+
+        // Atomic transaction: Clear -> Insert
+        document.execCommand('delete', false, null);
+        const success = document.execCommand('insertText', false, text);
+        
+        if (!success) {
+          element.innerText = text;
         }
       }
     } catch (e) {
-      console.error("VoiceMux: Injection failure:", e);
-      // Absolute last resort
+      console.error("VoiceMux: Critical Injection Failure:", e);
       if (element.tagName === 'TEXTAREA') element.value = text;
       else element.innerText = text;
     }
 
-    // MANDATORY: Universal state synchronization trigger
-    element.dispatchEvent(new Event('input', { bubbles: true }));
+    // 3. Mandatory State Sync (Explicitly mark as replacement)
+    element.dispatchEvent(new InputEvent('input', { 
+      bubbles: true, 
+      inputType: 'insertReplacementText',
+      data: text 
+    }));
     element.dispatchEvent(new Event('change', { bubbles: true }));
     
     moveCursorToEnd(element);
@@ -234,8 +240,27 @@ if (window.VOICEMUX_INITIALIZED) {
 
       if (request.action === "update_text") {
         forceInject(finalTarget, plaintext);
-      } else if (request.action === "confirm_send" || request.action === "SUBMIT") {
-        if (plaintext) forceInject(finalTarget, plaintext);
+      } else if (request.action === "INSERT") {
+        console.log("VoiceMux: Handling INSERT command.");
+        const textToInsert = request.text || plaintext || "";
+        if (textToInsert) {
+          finalTarget.focus();
+          document.execCommand('insertText', false, textToInsert);
+          finalTarget.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: textToInsert }));
+          finalTarget.dispatchEvent(new Event('change', { bubbles: true }));
+          moveCursorToEnd(finalTarget);
+        }
+      } else if (request.action === "NEWLINE") {
+        console.log("VoiceMux: Handling NEWLINE command.");
+        finalTarget.focus();
+        document.execCommand('insertText', false, '\n');
+        finalTarget.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: '\n' }));
+        finalTarget.dispatchEvent(new Event('change', { bubbles: true }));
+        moveCursorToEnd(finalTarget);
+      } else if (request.action === "SUBMIT" || request.action === "confirm_send") {
+        // DESIGN INTENT: SUBMIT is now decoupled from text injection.
+        // It only wakes up the UI and clicks the button.
+        console.log("VoiceMux: Handling SUBMIT command.");
         await performSubmit(finalTarget, adapter);
       } else if (request.action === "CLEAR") {
         console.log("VoiceMux: Clearing target element.");

@@ -48,6 +48,34 @@
       margin: 0;
       color: var(--md-sys-color-primary);
       letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .app-version {
+      font-size: 10px;
+      font-weight: 400;
+      opacity: 0.6;
+      background: var(--md-sys-color-surface-variant);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .maintenance-notice {
+      background: var(--md-sys-color-warning);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      width: 100%;
+    }
+
+    .maintenance-notice a {
+      color: white;
+      text-decoration: underline;
     }
 
     .status-indicator-group {
@@ -249,7 +277,10 @@
 </head>
 <body>
   <div class="header">
-    <h1 data-i18n="name">VoiceMux Bridge</h1>
+    <h1>
+      <span data-i18n="name">VoiceMux Bridge</span>
+      <span id="version-display" class="app-version">v...</span>
+    </h1>
     <div class="status-indicator-group">
       <div id="status-indicator" class="status-dot"></div>
     </div>
@@ -270,6 +301,10 @@
 
   <!-- View 2: Linked (Ready) -->
   <div id="linked-view">
+    <div id="maintenance-notice" class="maintenance-notice" style="display: none;">
+      <a id="maintenance-link" href="#" target="_blank">🚧 Maintenance (Details)</a>
+    </div>
+
     <h2 class="ready-msg" data-i18n="ready_to_sync">Ready to Pair!</h2>
     <p class="sync-instruction" data-i18n="sync_instruction">Scan with your phone to start input.</p>
 

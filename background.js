@@ -150,15 +150,32 @@ async function connect() {
           chrome.storage.local.set({ 'voicemux_paired': true });
         } else if (eventName === "remote_command") {
           // DESIGN INTENT: Remote Control.
-          // Phone sends commands like CLEAR or SUBMIT.
+          // Phone sends commands like CLEAR, SUBMIT, INSERT, NEWLINE.
           console.log("VoiceMux: Remote command received:", payload.action);
-          chrome.tabs.query({active: true, lastFocusedWindow: true}, (tabs) => {
-            if (tabs[0]) {
-               chrome.tabs.sendMessage(tabs[0].id, {
-                action: payload.action
-              }).catch(() => {});
-            }
-          });
+          
+          let textToForward = payload.text;
+          // If encrypted, decrypt it. In Bolt protocol, text might be encrypted.
+          if (payload.ciphertext && payload.iv) {
+              decrypt(payload).then(decrypted => {
+                  chrome.tabs.query({active: true, lastFocusedWindow: true}, (tabs) => {
+                      if (tabs[0]) {
+                         chrome.tabs.sendMessage(tabs[0].id, {
+                          action: payload.action,
+                          text: decrypted
+                        }).catch(() => {});
+                      }
+                  });
+              });
+          } else {
+              chrome.tabs.query({active: true, lastFocusedWindow: true}, (tabs) => {
+                if (tabs[0]) {
+                   chrome.tabs.sendMessage(tabs[0].id, {
+                    action: payload.action,
+                    text: textToForward
+                  }).catch(() => {});
+                }
+              });
+          }
         }
       }
     };
@@ -243,4 +260,5 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 // Start initial connection attempt
+console.log(`VoiceMux Bridge v${chrome.runtime.getManifest().version} Background Service Worker Started`);
 connect();

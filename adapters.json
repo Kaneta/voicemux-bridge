@@ -24,8 +24,8 @@
     "id": "perplexity",
     "name": "Perplexity",
     "host": "perplexity.ai",
-    "inputSelector": "textarea",
-    "submitSelector": "button[aria-label*='Submit'], button[aria-label*='Ask']"
+    "inputSelector": "div[contenteditable='true'], textarea[placeholder*='Ask'], textarea",
+    "submitSelector": "button[aria-label*='Submit'], button[aria-label*='Ask'], button:has(svg), .flex.items-center.justify-center.rounded-full.transition-all"
   },
   {
     "id": "treenote",
