@@ -38,20 +38,32 @@ async function getDecryptionKey() {
 async function decrypt(payload) {
   if (!payload.ciphertext || !payload.iv) return payload.text || "";
   try {
-    const key = await getDecryptionKey();
-    if (!key) {
-      console.warn("[E2EE] Decryption skipped: No key available.");
+    const data = await chrome.storage.local.get('voicemux_key');
+    if (!data.voicemux_key) {
+      console.warn("[E2EE] Decryption skipped: No key in storage.");
       return payload.text || "";
     }
+
+    const rawKey = Uint8Array.from(safeAtob(data.voicemux_key), c => c.charCodeAt(0));
+    const key = await crypto.subtle.importKey("raw", rawKey, "AES-GCM", true, ["decrypt"]);
+    
     const iv = Uint8Array.from(safeAtob(payload.iv), c => c.charCodeAt(0));
     const ciphertext = Uint8Array.from(safeAtob(payload.ciphertext), c => c.charCodeAt(0));
+    
     const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext);
-    return new TextDecoder().decode(decrypted);
+    const result = new TextDecoder().decode(decrypted);
+    
+    if (!result && ciphertext.length > 0) {
+      console.warn("[E2EE] Decrypted to empty string. Possible key mismatch.");
+    }
+    return result;
   } catch (e) {
-    console.error("[E2EE] Decryption failed.", e);
+    console.error("[E2EE] Decryption failed. Error:", e.name, "| Key Length:", safeAtob((await chrome.storage.local.get('voicemux_key')).voicemux_key).length);
     return "[Decryption Error]";
   }
 }
+
+let currentRoomId = null;
 
 /** Initializes WebSocket connection to the relay server using KNC ID token. */
 async function connect() {
@@ -70,22 +82,25 @@ async function connect() {
 
   const roomId = data.voicemux_room_id;
   const token = data.voicemux_token;
+  currentRoomId = roomId;
 
   try {
-    const currentTopic = `room:${roomId}`; 
+    const topic = `room:${roomId}`; 
     console.log(`VoiceMux: Connecting... | Room: ${roomId}`);
     
     const wsUrl = `${BASE_WS_URL}?vsn=2.0.0&token=${token}`;
     socket = new WebSocket(wsUrl);
 
     socket.onopen = () => {
+      if (!socket || socket.readyState !== WebSocket.OPEN) return;
+      
       console.log("VoiceMux: Connected (Authenticated)");
       retryDelay = 1000;
-      socket.send(JSON.stringify(["1", "1", currentTopic, "phx_join", {}]));
+      socket.send(JSON.stringify(["1", "1", topic, "phx_join", {}]));
       
       if (heartbeatInterval) clearInterval(heartbeatInterval);
       heartbeatInterval = setInterval(() => {
-        if (socket.readyState === WebSocket.OPEN) {
+        if (socket && socket.readyState === WebSocket.OPEN) {
           socket.send(JSON.stringify([null, "heartbeat", "phoenix", "heartbeat", {}]));
         }
       }, 30000);
@@ -97,15 +112,35 @@ async function connect() {
       const eventName = data[3];
       const payload = data[4];
 
-      if (msgTopic === currentTopic) {
+      // DESIGN INTENT: Dynamic Topic Validation.
+      // Use the currentRoomId from the top-level scope to ensure we match the right room.
+      if (msgTopic === `room:${currentRoomId}`) {
         if (eventName === "update_text" || eventName === "confirm_send") {
+          console.log(`VoiceMux: Data received [${eventName}]. Decrypting...`);
+          
+          // Verify Key Fingerprint
+          const localKey = (await chrome.storage.local.get('voicemux_key')).voicemux_key;
+          if (payload.key_hint && localKey && !localKey.startsWith(payload.key_hint)) {
+            console.error(`VoiceMux: KEY MISMATCH! Sender Hint: ${payload.key_hint} | Local Hint: ${localKey.substring(0, 4)}`);
+            return;
+          }
+
           const plaintext = await decrypt(payload);
+          
+          if (plaintext === "[Decryption Error]") {
+            console.error("VoiceMux: Decryption failed. Key might be out of sync.");
+            return;
+          }
+
           chrome.tabs.query({active: true, lastFocusedWindow: true}, (tabs) => {
             if (tabs[0]) {
+               console.log("VoiceMux: Injecting text to tab:", tabs[0].title);
                chrome.tabs.sendMessage(tabs[0].id, {
                 action: eventName,
                 plaintext: plaintext 
-              }).catch(() => {});
+              }).catch((err) => console.warn("VoiceMux: Tab injection failed:", err));
+            } else {
+              console.warn("VoiceMux: No active tab found for injection.");
             }
           });
         } else if (eventName === "device_online") {
@@ -113,6 +148,17 @@ async function connect() {
           // Another device (the phone) just joined.
           console.log("VoiceMux: Remote device detected. Pairing successful!");
           chrome.storage.local.set({ 'voicemux_paired': true });
+        } else if (eventName === "remote_command") {
+          // DESIGN INTENT: Remote Control.
+          // Phone sends commands like CLEAR or SUBMIT.
+          console.log("VoiceMux: Remote command received:", payload.action);
+          chrome.tabs.query({active: true, lastFocusedWindow: true}, (tabs) => {
+            if (tabs[0]) {
+               chrome.tabs.sendMessage(tabs[0].id, {
+                action: payload.action
+              }).catch(() => {});
+            }
+          });
         }
       }
     };
@@ -155,24 +201,37 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 });
 chrome.alarms.create("keepAlive", { periodInMinutes: 1 });
 
+let syncTimeout = null;
+
 // ★ External Message Listener (Clean Sync architecture)
 // DESIGN INTENT: Receive credentials directly from Hub's JS environment.
 chrome.runtime.onMessageExternal.addListener((request, sender, sendResponse) => {
   if (request.action === "SYNC_AUTH") {
     const { uuid, token, key } = request.payload;
     
-    console.log(`[Auth] Sync received from Hub. UUID: ${uuid.substring(0, 8)}... Token: ${token.substring(0, 10)}...`);
-    chrome.storage.local.set({
-      'voicemux_room_id': uuid,
-      'voicemux_token': token,
-      'voicemux_key': key,
-      'voicemux_hub_url': sender.url // Automatically trust the hub URL
-    }, () => {
-      if (socket) socket.close();
-      connect();
-      if (sendResponse) sendResponse({ success: true });
-    });
-    return true; // Keep channel open for async response
+    // DESIGN INTENT: Debounce rapid sync calls from Hub to prevent WebSocket thrashing.
+    if (syncTimeout) clearTimeout(syncTimeout);
+    syncTimeout = setTimeout(() => {
+      console.log(`[Auth] Sync received from Hub. UUID: ${uuid.substring(0, 8)}...`);
+      chrome.storage.local.set({
+        'voicemux_room_id': uuid,
+        'voicemux_token': token,
+        'voicemux_key': key,
+        'voicemux_hub_url': sender.url // Automatically trust the hub URL
+      }, () => {
+        // Force a clean reconnection with the new credentials
+        if (socket) {
+          socket.onclose = null; // Prevent reconnection loop during intentional close
+          socket.onerror = null;
+          socket.close();
+          socket = null;
+        }
+        connect();
+      });
+    }, 500); // 500ms debounce
+
+    if (sendResponse) sendResponse({ success: true });
+    return true; 
   }
 });
 

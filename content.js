@@ -81,31 +81,79 @@ if (window.VOICEMUX_INITIALIZED) {
     return { target: null, adapter: null };
   }
 
+  let lastUserInteraction = 0;
+  const INPUT_LOCK_MS = 2000;
+  const SUBMIT_DELAY_MS = 150;
+
+  // Listen for local interaction to prevent remote fighting
+  document.addEventListener('keydown', () => lastUserInteraction = Date.now(), true);
+  document.addEventListener('mousedown', () => lastUserInteraction = Date.now(), true);
+
   /** 
-   * Injects text into a target element. 
+   * Hybrid Text Injection: v1.4 Stability + v2.1.1 Adaptability
    */
   function forceInject(element, text) {
     if (!element) return;
-    element.focus();
-    if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
-      const proto = element.tagName === 'INPUT' ? window.HTMLInputElement.prototype : window.HTMLTextAreaElement.prototype;
-      const nativeSetter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
-      if (nativeSetter) {
-          nativeSetter.call(element, text);
-      } else {
-          element.value = text;
-      }
-    } else if (element.isContentEditable) {
-        try {
-            element.textContent = text;
-            const inputEvent = new InputEvent('input', { bubbles: true, cancelable: true, inputType: 'insertText', data: text });
-            element.dispatchEvent(inputEvent);
-        } catch (e) {
-            element.innerText = text;
-        }
+    
+    const now = Date.now();
+    if (now - lastUserInteraction < INPUT_LOCK_MS) {
+      console.log("VoiceMux: Local interaction detected. Skipping remote update.");
+      return;
     }
-    element.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
-    element.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
+
+    const current = element.tagName === 'TEXTAREA' || element.tagName === 'INPUT' ? element.value : element.innerText;
+    if (current === text) return;
+
+    console.log(`VoiceMux: Injecting into ${element.tagName}. Method: ${element.isContentEditable ? 'SmartPaste' : 'SetterHack'}`);
+    element.focus();
+
+    try {
+      if (element.tagName === 'TEXTAREA' || element.tagName === 'INPUT') {
+        // --- v1.4 PROTOTYPE SETTER HACK (Ultra-Stable) ---
+        // DESIGN INTENT: Bypass framework interception by calling the native value setter.
+        const proto = element.tagName === 'INPUT' ? window.HTMLInputElement.prototype : window.HTMLTextAreaElement.prototype;
+        const nativeSetter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
+        
+        if (nativeSetter) {
+          nativeSetter.call(element, text);
+        } else {
+          element.value = text;
+        }
+      } else if (element.isContentEditable) {
+        // --- v2.1.1 SMART PASTE SIMULATION ---
+        // DESIGN INTENT: Emulate a real clipboard paste for complex Rich Text editors.
+        const dataTransfer = new DataTransfer();
+        dataTransfer.setData('text/plain', text);
+
+        // Select all to replace
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(element);
+        selection.removeAllRanges();
+        selection.addRange(range);
+
+        const pasteEvent = new ClipboardEvent('paste', {
+          clipboardData: dataTransfer,
+          bubbles: true,
+          cancelable: true
+        });
+        
+        if (element.dispatchEvent(pasteEvent)) {
+          // If not intercepted, fallback to execCommand
+          document.execCommand('insertText', false, text);
+        }
+      }
+    } catch (e) {
+      console.error("VoiceMux: Injection failure:", e);
+      // Absolute last resort
+      if (element.tagName === 'TEXTAREA') element.value = text;
+      else element.innerText = text;
+    }
+
+    // MANDATORY: Universal state synchronization trigger
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+    element.dispatchEvent(new Event('change', { bubbles: true }));
+    
     moveCursorToEnd(element);
   }
 
@@ -124,6 +172,34 @@ if (window.VOICEMUX_INITIALIZED) {
     }
   }
 
+  /**
+   * Aggressive Submission Logic: Wakes up the UI before clicking
+   */
+  async function performSubmit(target, adapter) {
+    console.log("VoiceMux: Preparing for submission...");
+    
+    // 1. Final focus ritual to ensure button states refresh
+    target.focus();
+    target.dispatchEvent(new Event('input', { bubbles: true }));
+
+    setTimeout(() => {
+      if (adapter && adapter.submitSelector === null) return;
+      
+      let btn = null;
+      if (adapter && adapter.submitSelector) {
+        btn = document.querySelector(adapter.submitSelector);
+      }
+
+      if (btn && !btn.disabled) {
+        console.log("VoiceMux: Clicking submission button.");
+        btn.click();
+      } else {
+        console.log("VoiceMux: Submitting via Enter key.");
+        triggerEnter(target);
+      }
+    }, SUBMIT_DELAY_MS);
+  }
+
   function triggerEnter(target) {
       const opts = { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true, composed: true, view: window };
       target.dispatchEvent(new KeyboardEvent('keydown', opts));
@@ -133,31 +209,54 @@ if (window.VOICEMUX_INITIALIZED) {
 
   // ★ Message Listener (Plaintext from Background)
   chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
-    // Prevent feedback loops on Hub/localhost dev
     const isHub = window.location.hostname.includes("hub.knc.jp") || 
                   (window.location.hostname === "localhost" && window.location.port === "5173");
     if (isHub) return;
 
-    const { target, adapter } = await getTargetAndAdapter();
-    if (!target) return;
+    console.group("VoiceMux: Remote Command");
+    try {
+      const { target, adapter } = await getTargetAndAdapter();
+      const plaintext = request.plaintext;
+      
+      let finalTarget = target;
+      if (!finalTarget) {
+        const active = document.activeElement;
+        if (active && (active.tagName === 'TEXTAREA' || active.tagName === 'INPUT' || active.isContentEditable)) {
+          finalTarget = active;
+        }
+      }
 
-    const plaintext = request.plaintext;
-    if (request.action === "update_text") {
-      forceInject(target, plaintext);
-    } else if (request.action === "confirm_send") {
-      forceInject(target, plaintext);
-      setTimeout(() => {
-          if (adapter && adapter.submitSelector === null) return;
-          let btn = null;
-          if (adapter && adapter.submitSelector) {
-              btn = document.querySelector(adapter.submitSelector);
-          }
-          if (btn && !btn.disabled) {
-              btn.click();
-          } else {
-              triggerEnter(target);
-          }
-      }, 100);
+      if (!finalTarget) {
+        console.warn("VoiceMux: No target for injection.");
+        console.groupEnd();
+        return;
+      }
+
+      if (request.action === "update_text") {
+        forceInject(finalTarget, plaintext);
+      } else if (request.action === "confirm_send" || request.action === "SUBMIT") {
+        if (plaintext) forceInject(finalTarget, plaintext);
+        await performSubmit(finalTarget, adapter);
+      } else if (request.action === "CLEAR") {
+        console.log("VoiceMux: Clearing target element.");
+        if (finalTarget.tagName === 'TEXTAREA' || finalTarget.tagName === 'INPUT') {
+          // Native setter hack for clearing
+          const proto = finalTarget.tagName === 'INPUT' ? window.HTMLInputElement.prototype : window.HTMLTextAreaElement.prototype;
+          const nativeSetter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
+          if (nativeSetter) nativeSetter.call(finalTarget, "");
+          else finalTarget.value = "";
+        } else {
+          // ContentEditable clear
+          finalTarget.focus();
+          document.execCommand('selectAll', false, null);
+          document.execCommand('delete', false, null);
+        }
+        finalTarget.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    } catch (err) {
+      console.error("VoiceMux: Handler Error:", err);
+    } finally {
+      console.groupEnd();
     }
   });
 

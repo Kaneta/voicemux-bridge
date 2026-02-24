@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       // --- LINKED STATE (READY) ---
       linkedView.style.display = "flex";
       unlinkedView.style.display = "none";
-      statusIndicator.classList.add("online");
+      statusIndicator?.classList.add("online");
 
       // Check for active pairing success
       if (isPaired) {
@@ -47,43 +47,42 @@ document.addEventListener('DOMContentLoaded', async () => {
             Done (Close)
           </button>
         `;
-        document.getElementById("btn-close-popup").onclick = () => window.close();
+        const closeBtn = document.getElementById("btn-close-popup");
+        if (closeBtn) closeBtn.onclick = () => window.close();
         return;
       }
 
-      // Update Hub Link
+      // Update Hub Link (Optional)
       if (hubLink) hubLink.href = `${hubOrigin}/welcome`;
 
       // Construct Pairing URL
-      // DESIGN INTENT: Minimize URL length to reduce QR density.
-      // 1. Remove redundant uuid param.
-      // 2. Use pure black for max contrast.
-      // 3. Lower error correction to 'M' for larger dots.
       let pairingUrl = `${hubOrigin}/${roomId}`;
       pairingUrl += `?mode=zen&token=${token}`;
       pairingUrl += `#key=${keyBase64}`;
       
       const displayRoomId = roomId.substring(0, 4).toUpperCase();
-      roomIdDisplay.innerText = displayRoomId;
-      qrcodeLink.href = pairingUrl;
+      if (roomIdDisplay) roomIdDisplay.innerText = displayRoomId;
+      if (qrcodeLink) qrcodeLink.href = pairingUrl;
 
       // Handle Copy Button
       const copyBtn = document.getElementById("copy-btn");
       const copyText = document.getElementById("copy-text");
-      copyBtn.onclick = async () => {
-        try {
-          await navigator.clipboard.writeText(pairingUrl);
-          copyText.innerText = chrome.i18n.getMessage("btn_copy_success");
-          copyBtn.classList.add("success");
-          setTimeout(() => {
-            copyText.innerText = chrome.i18n.getMessage("btn_copy_link");
-            copyBtn.classList.remove("success");
-          }, 2000);
-        } catch (err) {}
-      };
+      if (copyBtn) {
+        copyBtn.onclick = async () => {
+          try {
+            await navigator.clipboard.writeText(pairingUrl);
+            if (copyText) copyText.innerText = chrome.i18n.getMessage("btn_copy_success");
+            copyBtn.classList.add("success");
+            setTimeout(() => {
+              if (copyText) copyText.innerText = chrome.i18n.getMessage("btn_copy_link");
+              copyBtn.classList.remove("success");
+            }, 2000);
+          } catch (err) {}
+        };
+      }
 
       // Generate QR Code
-      if (qrcodeContainer.innerHTML === "") {
+      if (qrcodeContainer && qrcodeContainer.innerHTML === "") {
         new QRCode(qrcodeContainer, {
           text: pairingUrl,
           width: 160,
@@ -98,11 +97,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       // --- UNLINKED STATE ---
       unlinkedView.style.display = "flex";
       linkedView.style.display = "none";
-      statusIndicator.classList.remove("online");
+      statusIndicator?.classList.remove("online");
 
-      btnOpenHub.onclick = () => {
-        chrome.tabs.create({ url: hubOrigin });
-      };
+      if (btnOpenHub) {
+        btnOpenHub.onclick = () => {
+          chrome.tabs.create({ url: hubOrigin });
+        };
+      }
 
       // Signal background to check connection
       chrome.runtime.sendMessage({ action: "check_connection" });
