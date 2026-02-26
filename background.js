@@ -91,7 +91,13 @@ async function connect() {
     } else if (eventName === "remote_command") {
       // DESIGN INTENT: Execute remote action (INSERT, NEWLINE, SUBMIT, CLEAR, LOG)
       const text = (payload.ciphertext && payload.iv) ? await decrypt(payload) : payload.text;
-      chrome.tabs.query({active: true, lastFocusedWindow: true}, (tabs) => { if (tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { ...payload, text }).catch(() => {}); });
+      chrome.tabs.query({active: true, lastFocusedWindow: true}, (tabs) => { 
+        if (tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { ...payload, text }).catch(() => {}); 
+      });
+      // @intent Activity awareness. If we receive a command, we are online.
+      if (isJoined && payload.action !== 'LOG') {
+        socket.send(JSON.stringify([JOIN_REF, "4", topic, "device_online", { sender_tab_id: "extension" }]));
+      }
     }
   };
   socket.onclose = () => { isJoined = false; scheduleReconnect(); };
