@@ -3,7 +3,7 @@ if (window.VOICEMUX_INITIALIZED) {
   console.log("VoiceMux: Already initialized in this tab.");
 } else {
   window.VOICEMUX_INITIALIZED = true;
-  console.group("VoiceMux Bridge v2.2.20");
+  console.group("VoiceMux Bridge v2.2.21");
   console.log("Status: Content Script Loaded");
   console.groupEnd();
 
