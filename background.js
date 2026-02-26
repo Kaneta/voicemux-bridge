@@ -18,7 +18,8 @@ const JOIN_REF = "1";
 function safeAtob(str) {
   if (!str) return "";
   try {
-    return atob(str.replace(/-/g, "+").replace(/_/g, "/"));
+    // Handle URL-safe Base64 and legacy space-conversion issues
+    return atob(str.replace(/-/g, "+").replace(/_/g, "/").replace(/ /g, "+"));
   } catch (e) {
     return "";
   }
@@ -29,10 +30,16 @@ async function decrypt(payload) {
   try {
     const data = await chrome.storage.local.get('voicemux_key');
     if (!data.voicemux_key) return "[No Key]";
-    const localHint = data.voicemux_key.substring(0, 4);
-    if (payload.key_hint && payload.key_hint !== localHint) return "[Key Mismatch]";
+    
+    // Fix legacy space-to-plus issue
+    const cleanKey = data.voicemux_key.replace(/ /g, '+');
+    const localHint = cleanKey.substring(0, 4);
+    if (payload.key_hint && payload.key_hint !== localHint) {
+      console.warn(`VoiceMux: Key Mismatch! Received: ${payload.key_hint} | Local: ${localHint}`);
+      return "[Key Mismatch]";
+    }
 
-    const rawKey = safeAtob(data.voicemux_key);
+    const rawKey = safeAtob(cleanKey);
     const key = await crypto.subtle.importKey("raw", Uint8Array.from(rawKey, c => c.charCodeAt(0)), { name: "AES-GCM" }, false, ["decrypt"]);
     const iv = Uint8Array.from(safeAtob(payload.iv), c => c.charCodeAt(0));
     const ciphertext = Uint8Array.from(safeAtob(payload.ciphertext), c => c.charCodeAt(0));
@@ -95,7 +102,16 @@ function scheduleReconnect() { if (retryTimer) clearTimeout(retryTimer); retryTi
 
 chrome.runtime.onMessage.addListener((request) => {
   if (request.action === "SYNC_AUTH") {
-    chrome.storage.local.set({ 'voicemux_token': request.token, 'voicemux_room_id': request.roomId, 'voicemux_key': request.key }, () => { if (socket) socket.close(); connect(); });
+    // DESIGN INTENT: Key Integrity. Fix legacy space-to-plus conversion.
+    const cleanKey = (request.key || "").replace(/ /g, "+");
+    chrome.storage.local.set({ 
+      'voicemux_token': request.token, 
+      'voicemux_room_id': request.roomId, 
+      'voicemux_key': cleanKey 
+    }, () => { 
+      if (socket) socket.close(); 
+      connect(); 
+    });
   }
 });
 
