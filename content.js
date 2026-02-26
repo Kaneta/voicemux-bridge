@@ -3,7 +3,7 @@ if (window.VOICEMUX_INITIALIZED) {
   console.log("VoiceMux: Already initialized in this tab.");
 } else {
   window.VOICEMUX_INITIALIZED = true;
-  console.group("VoiceMux Bridge v2.2.4");
+  console.group("VoiceMux Bridge v2.2.17");
   console.log("Status: Content Script Loaded");
   console.groupEnd();
 
@@ -84,6 +84,7 @@ if (window.VOICEMUX_INITIALIZED) {
   }
 
   let lastUserInteraction = 0;
+  let lastInterimLength = 0; // PC側で保持する「最後に挿入した未確定文字の長さ」
   const INPUT_LOCK_MS = 2000;
   const SUBMIT_DELAY_MS = 150;
 
@@ -240,11 +241,41 @@ if (window.VOICEMUX_INITIALIZED) {
 
       if (request.action === "update_text") {
         forceInject(finalTarget, plaintext);
+      } else if (request.action === "INTERIM") {
+        // DESIGN INTENT: Real-time preview without duplication.
+        // Delete the previous interim text before inserting the new one.
+        console.log(`VoiceMux: Handling INTERIM command. (Rolling back ${lastInterimLength} chars)`);
+        const textToInsert = request.text || plaintext || "";
+        finalTarget.focus();
+
+        // 1. 前回の未確定分を削除
+        for (let i = 0; i < lastInterimLength; i++) {
+          document.execCommand('delete', false, null);
+        }
+
+        // 2. 新しい未確定テキストを挿入し、長さを記憶
+        if (textToInsert) {
+          document.execCommand('insertText', false, textToInsert);
+          lastInterimLength = textToInsert.length;
+        } else {
+          lastInterimLength = 0;
+        }
       } else if (request.action === "INSERT") {
         console.log("VoiceMux: Handling INSERT command.");
         const textToInsert = request.text || plaintext || "";
+        finalTarget.focus();
+
+        // 1. 確定時も、一度未確定バッファをロールバックする
+        if (lastInterimLength > 0) {
+          console.log(`VoiceMux: Rolling back ${lastInterimLength} interim chars before final INSERT.`);
+          for (let i = 0; i < lastInterimLength; i++) {
+            document.execCommand('delete', false, null);
+          }
+          lastInterimLength = 0; // 確定したのでバッファをリセット
+        }
+
+        // 2. 確定テキストを挿入
         if (textToInsert) {
-          finalTarget.focus();
           document.execCommand('insertText', false, textToInsert);
           finalTarget.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: textToInsert }));
           finalTarget.dispatchEvent(new Event('change', { bubbles: true }));
@@ -277,6 +308,11 @@ if (window.VOICEMUX_INITIALIZED) {
           document.execCommand('delete', false, null);
         }
         finalTarget.dispatchEvent(new Event('input', { bubbles: true }));
+      } else if (request.action === "LOG") {
+        const style = "background: #6750A4; color: white; padding: 2px 4px; border-radius: 2px;";
+        if (request.log_level === 'error') console.error("%cREMOTE", style, request.message);
+        else if (request.log_level === 'warn') console.warn("%cREMOTE", style, request.message);
+        else console.log("%cREMOTE", style, request.message);
       }
     } catch (err) {
       console.error("VoiceMux: Handler Error:", err);
