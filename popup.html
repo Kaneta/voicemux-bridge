@@ -2,6 +2,11 @@
 <html>
 <head>
   <meta charset="utf-8">
+  <!-- [Intent: Status-Centric Dashboard Architecture.
+       This popup is a monitoring tool for Hub and Phone connectivity.
+       All interactive pairing logic (QR generation) is offloaded to the Hub to:
+       1. Simplify Extension security review (minimal UI logic).
+       2. Centralize device management in the primary Hub workspace. ] -->
   <style>
     :root {
       /* M3 Light Palette (Violet baseline) */
@@ -213,22 +218,66 @@
       transition: transform 0.2s;
     }
 
-    #qrcode-link:hover { transform: scale(1.02); }
-
-    #qrcode {
-      background: white;
+    /* Status Monitor Layout */
+    .status-monitor {
+      width: 100%;
+      background: var(--md-sys-color-surface-variant);
+      border-radius: 12px;
       padding: 12px;
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      box-sizing: border-box;
+    }
+
+    .status-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+    }
+
+    .status-label {
+      font-weight: 600;
+      opacity: 0.8;
+    }
+
+    .status-value {
+      font-weight: 800;
+      color: var(--md-sys-color-primary);
+    }
+
+    .status-value.connected {
+      color: var(--md-sys-color-success);
+    }
+
+    .btn-connect-phone {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 24px;
+      background: white;
       border-radius: 20px;
       box-shadow: var(--md-sys-elevation-2);
       border: 1px solid var(--md-sys-color-surface-variant);
-      /* High contrast for scannability */
-      image-rendering: pixelated;
+      color: var(--md-sys-color-primary);
+      text-decoration: none;
+      margin-bottom: 16px;
     }
 
-    #qrcode img, #qrcode svg {
-      display: block;
-      width: 100%;
-      height: auto;
+    .btn-connect-phone:hover {
+      background-color: var(--md-sys-color-primary-container);
+    }
+
+    .btn-connect-phone svg {
+      color: var(--md-sys-color-primary);
+    }
+
+    .btn-connect-phone span {
+      font-size: 14px;
+      font-weight: 700;
     }
 
     .room-info {
@@ -305,12 +354,25 @@
       <a id="maintenance-link" href="#" target="_blank">🚧 Maintenance (Details)</a>
     </div>
 
-    <h2 class="ready-msg" data-i18n="ready_to_sync">Ready to Pair!</h2>
-    <p class="sync-instruction" data-i18n="sync_instruction">Scan with your phone to start input.</p>
+    <div class="status-monitor">
+      <div class="status-item">
+        <span class="status-label">🌐 Hub:</span>
+        <span id="hub-status-text" class="status-value">Linked</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">📱 Phone:</span>
+        <span id="phone-status-text" class="status-value">Waiting...</span>
+      </div>
+    </div>
 
-    <a id="qrcode-link" href="#" target="_blank">
-      <div id="qrcode"></div>
+    <a id="qrcode-link" href="#" target="_blank" class="btn-connect-phone">
+      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+        <line x1="12" y1="18" x2="12.01" y2="18"></line>
+      </svg>
+      <span data-i18n="btn_show_qr_on_hub">Connect Smartphone</span>
     </a>
+
     <div id="room-id" class="room-info" data-i18n="room_loading">Room: Loading...</div>
 
     <button id="copy-btn" class="btn-copy-link">
@@ -328,7 +390,6 @@
     <a href="https://github.com/Kaneta/voicemux-bridge/blob/main/PRIVACY.md" target="_blank" class="f-link" data-i18n="link_privacy">Privacy</a>
   </div>
 
-  <script src="qrcode.min.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

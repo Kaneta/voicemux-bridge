@@ -12,16 +12,19 @@
     "message": "First, let's link with the Hub"
   },
   "waiting_hub_sub": {
-    "message": "Once you open the VoiceMux Hub site, the pairing QR code will appear here automatically."
+    "message": "Once you open the VoiceMux Hub site, this extension will be linked automatically."
   },
   "btn_open_hub": {
     "message": "🚀 Open Hub to Link"
   },
   "ready_to_sync": {
-    "message": "Ready to Pair!"
+    "message": "Ready to Connect!"
   },
   "sync_instruction": {
-    "message": "Scan with your phone to start input."
+    "message": "Open Hub on PC to show pairing QR."
+  },
+  "btn_show_qr_on_hub": {
+    "message": "Connect Smartphone"
   },
   "btn_copy_link": {
     "message": "Copy Link"
