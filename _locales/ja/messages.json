@@ -35,6 +35,12 @@
   "btn_manage_librarian": {
     "message": "🪄 誤認識の修正・プロンプト生成"
   },
+  "btn_reset_connection": {
+    "message": "接続をリセット"
+  },
+  "confirm_reset": {
+    "message": "接続をリセットして再ペアリングしますか？"
+  },
   "link_support": {
     "message": "サポート"
   },

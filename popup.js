@@ -39,6 +39,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     const phoneStatusText = document.getElementById("phone-status-text");
     const hubStatusText = document.getElementById("hub-status-text");
 
+    // Global Reset Connection Logic
+    const handleReset = async () => {
+        if (confirm(chrome.i18n.getMessage("confirm_reset") || "Reset connection?")) {
+            await chrome.storage.local.remove(['voicemux_room_id', 'voicemux_token', 'voicemux_key', 'voicemux_paired']);
+            chrome.runtime.sendMessage({ action: "check_connection" });
+            const data = await chrome.storage.local.get(['voicemux_hub_url']);
+            const hubOrigin = data.voicemux_hub_url ? new URL(data.voicemux_hub_url).origin : 'https://hub.knc.jp';
+            chrome.tabs.create({ url: `${hubOrigin}?action=reset` });
+            window.close();
+        }
+    };
+
+    const btnResetGlobal = document.getElementById("btn-global-reset");
+    if (btnResetGlobal) btnResetGlobal.onclick = handleReset;
+
     // 1. Retrieve credentials from storage
     // [Intent: ストレージの変更（Hub側からのSYNC_AUTHメッセージによってトリガーされる）を監視し、リアクティブにUIを更新する。]
     async function updateUI() {
@@ -75,9 +90,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Update Hub Link (Optional)
             if (hubLink) hubLink.href = `${hubOrigin}/welcome`;
 
-            // Construct Pairing URL (Redirect to Hub to show QR)
-            // [Intent: 拡張機能単体でのQRコード生成を廃止し、このURL（HubのルームURL）への遷移を促すことでHub中心の導線を実現する。]
-            let pairingUrl = `${hubOrigin}/${roomId}?mode=zen&token=${token}#key=${keyBase64}`;
+            const btnReset = document.getElementById("btn-reset-connection");
+            if (btnReset) btnReset.onclick = handleReset;
+
+            // Construct Pairing URL (Redirect to v.knc.jp/pairing to show QR)
+            // [Intent: Hub統合によりHub側のURLを表示していたが、ユーザー体験向上のため、より軽量なv.knc.jpのペアリング専用ページを経由する。]
+            let pairingUrl = `https://v.knc.jp/pairing?uuid=${roomId}&token=${token}&key=${keyBase64}`;
             
             const displayRoomId = roomId.substring(0, 4).toUpperCase();
             if (roomIdDisplay) roomIdDisplay.innerText = displayRoomId;

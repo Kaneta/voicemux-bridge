@@ -1,6 +1,6 @@
 /**
  * VoiceMux Bridge: Extension Service Worker (WebSocket Relay)
- * Version: 2.2.17
+ * Version: 2.2.31
  */
 
 const BASE_WS_URL = "wss://v.knc.jp/socket/websocket";
@@ -79,7 +79,16 @@ async function connect() {
     if (eventName === "phx_reply" && payload?.status === "ok") {
       console.log("VoiceMux: Channel Joined Successfully.");
       isJoined = true;
+      retryDelay = 1000; // Reset retry delay on success
       socket.send(JSON.stringify([JOIN_REF, "2", topic, "device_online", { sender_tab_id: "extension" }]));
+    } else if (eventName === "phx_reply" && payload?.status === "error") {
+      console.error("VoiceMux: Channel Join Error:", payload?.response);
+      // [Intent: Auth Failure Recovery] If token is invalid, stop retrying and clear stale data.
+      if (payload?.response === "unauthorized" || payload?.response === "invalid token") {
+        console.warn("VoiceMux: Authentication failed. Clearing stale credentials.");
+        chrome.storage.local.remove(['voicemux_token', 'voicemux_room_id']);
+        if (socket) socket.close();
+      }
     } else if (eventName === "update_text" || eventName === "confirm_send") {
       const plaintext = await decrypt(payload);
       chrome.tabs.query({active: true, lastFocusedWindow: true}, (tabs) => { if (tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { action: eventName, plaintext }).catch(() => {}); });
@@ -91,6 +100,12 @@ async function connect() {
     } else if (eventName === "remote_command") {
       // DESIGN INTENT: Execute remote action (INSERT, NEWLINE, SUBMIT, CLEAR, LOG)
       const text = (payload.ciphertext && payload.iv) ? await decrypt(payload) : payload.text;
+      
+      // Explicit Background Log for debugging
+      if (payload.action === 'LOG') {
+        console.log(`[Remote LOG] ${text || payload.message}`);
+      }
+
       chrome.tabs.query({active: true, lastFocusedWindow: true}, (tabs) => { 
         if (tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { ...payload, text }).catch(() => {}); 
       });
@@ -106,18 +121,32 @@ async function connect() {
 
 function scheduleReconnect() { if (retryTimer) clearTimeout(retryTimer); retryTimer = setTimeout(connect, retryDelay); retryDelay = Math.min(retryDelay * 2, MAX_RETRY_DELAY); }
 
-chrome.runtime.onMessage.addListener((request) => {
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "SYNC_AUTH") {
-    // DESIGN INTENT: Key Integrity. Fix legacy space-to-plus conversion.
-    const cleanKey = (request.key || "").replace(/ /g, "+");
+    // [Intent: Robust Synchronization] Handle both flat and nested payload structures.
+    const data = request.payload || request;
+    const rawKey = data.key || data.voicemux_key || "";
+    const cleanKey = rawKey.replace(/ /g, "+");
+    const token = data.token || data.voicemux_token;
+    const roomId = data.uuid || data.roomId || data.voicemux_room_id;
+
+    if (!token || !roomId) {
+      console.error("VoiceMux: Received invalid SYNC_AUTH data:", data);
+      sendResponse?.({ success: false, error: "Missing token or roomId" });
+      return;
+    }
+
     chrome.storage.local.set({ 
-      'voicemux_token': request.token, 
-      'voicemux_room_id': request.roomId, 
+      'voicemux_token': token, 
+      'voicemux_room_id': roomId, 
       'voicemux_key': cleanKey 
     }, () => { 
+      console.log("VoiceMux: Credentials synchronized. Reconnecting...");
       if (socket) socket.close(); 
       connect(); 
+      sendResponse?.({ success: true });
     });
+    return true; // Keep channel open for async response
   }
 });
 

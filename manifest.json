@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_name__",
-  "version": "2.2.26",
+  "version": "2.2.37",
   "description": "__MSG_description__",
   "default_locale": "en",
   "permissions": [
@@ -36,7 +36,6 @@
         "<all_urls>"
       ],
       "exclude_matches": [
-        "https://v.knc.jp/*",
         "https://t.knc.jp/*"
       ],
       "js": [

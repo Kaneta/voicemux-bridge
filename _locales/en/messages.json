@@ -35,6 +35,12 @@
   "btn_manage_librarian": {
     "message": "🪄 Fix Errors & Generate Prompts"
   },
+  "btn_reset_connection": {
+    "message": "Reset Connection"
+  },
+  "confirm_reset": {
+    "message": "Reset connection and re-pair?"
+  },
   "link_support": {
     "message": "Support"
   },

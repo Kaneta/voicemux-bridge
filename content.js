@@ -3,7 +3,7 @@ if (window.VOICEMUX_INITIALIZED) {
   console.log("VoiceMux: Already initialized in this tab.");
 } else {
   window.VOICEMUX_INITIALIZED = true;
-  console.group("VoiceMux Bridge v2.2.26");
+  console.group("VoiceMux Bridge v2.2.37");
   console.log("Status: Content Script Loaded");
   console.groupEnd();
 
@@ -218,7 +218,10 @@ if (window.VOICEMUX_INITIALIZED) {
   chrome.runtime.onMessage.addListener(async (request, sender, sendResponse) => {
     const isHub = window.location.hostname.includes("hub.knc.jp") || 
                   (window.location.hostname === "localhost" && window.location.port === "5173");
-    if (isHub) return;
+    
+    // [Intent: Selective Passthrough] Allow logging messages even on Hub for debugging, 
+    // but block text injection to prevent infinite loops or UI interference.
+    if (isHub && request.action !== "LOG") return;
 
     console.group("VoiceMux: Remote Command");
     try {
