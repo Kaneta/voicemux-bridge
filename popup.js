@@ -99,7 +99,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             // Construct Pairing URL (Pointing to the dedicated Hub QR page)
             // [Intent: UI is now fully centralized on hub.knc.jp/qr]
-            let pairingUrl = `${hubOrigin}/qr`;
+            let pairingUrl = `${hubOrigin}/qr?uuid=${roomId}&token=${token}`;
             
             const displayRoomId = roomId.substring(0, 4).toUpperCase();
             if (roomIdDisplay) {roomIdDisplay.innerText = displayRoomId;}
