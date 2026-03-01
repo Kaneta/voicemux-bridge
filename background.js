@@ -100,21 +100,26 @@ function notifyActiveTab(payload, eventName) {
 /**
  * [Intent: Smart Tab Management]
  * Finds an existing Hub tab for the given roomId and focuses it.
- * If not found, creates a new one.
+ * If not found, creates a new one with the E2EE key attached.
  */
-function handleOpenEditor(roomId) {
-  const targetUrl = `https://hub.knc.jp/${roomId}`;
+async function handleOpenEditor(roomId) {
+  const data = await chrome.storage.local.get("voicemux_key");
+  const key = data.voicemux_key || "";
+  const targetUrl = `https://hub.knc.jp/${roomId}${key ? "#key=" + key : ""}`;
   
   chrome.tabs.query({ url: "*://hub.knc.jp/*" }, (tabs) => {
     const existingTab = tabs.find(t => t.url.includes(roomId));
     
     if (existingTab) {
+      // If key is missing in URL but we have it, we could update it, 
+      // but for now just focusing is standard. 
+      // Hub also tries to sync from extension DOM if missing.
       chrome.tabs.update(existingTab.id, { active: true });
       chrome.windows.update(existingTab.windowId, { focused: true });
       console.log("VoiceMux: Focused existing Hub tab.");
     } else {
       chrome.tabs.create({ url: targetUrl });
-      console.log("VoiceMux: Created new Hub tab.");
+      console.log("VoiceMux: Created new Hub tab with E2EE key.");
     }
   });
 }
