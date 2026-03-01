@@ -204,6 +204,32 @@ function handleSyncAuth(request, sender, sendResponse) {
     });
     return true; 
   }
+
+  if (request.action === "GET_AUTH") {
+    // [Intent: Vault Access] Retrieve credentials from extension storage
+    chrome.storage.local.get(["voicemux_token", "voicemux_room_id", "voicemux_key"], (data) => {
+      if (typeof sendResponse === "function") {
+        sendResponse({
+          token: data.voicemux_token,
+          uuid: data.voicemux_room_id,
+          key: data.voicemux_key
+        });
+      }
+    });
+    return true;
+  }
+
+  if (request.action === "CLEAR_AUTH") {
+    // [Intent: Vault Purge] Explicitly remove all credentials on session reset
+    chrome.storage.local.remove(["voicemux_token", "voicemux_room_id", "voicemux_key"], () => {
+      console.log("VoiceMux: Auth cleared from extension.");
+      if (socket) { socket.close(); }
+      if (typeof sendResponse === "function") {
+        sendResponse({ success: true });
+      }
+    });
+    return true;
+  }
   return false;
 }
 
