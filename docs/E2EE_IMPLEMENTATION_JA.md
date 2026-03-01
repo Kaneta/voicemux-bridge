@@ -86,9 +86,9 @@ async function decrypt(payload) {
 ### A. ローカルに保存されたソースコードを確認する
 Chromeウェブストアからインストールした拡張機能のソースコードは、あなたのPCの以下のディレクトリに保存されています。
 
-- **Windows**: `%LOCALAPPDATA%\Google\Chrome\User Data\Default\Extensions\omdfoongpifbbhapnpbocfoijkglegpd`
-- **Mac**: `~/Library/Application Support/Google/Chrome/Default/Extensions/omdfoongpifbbhapnpbocfoijkglegpd`
-- **Linux**: `~/.config/google-chrome/Default/Extensions/omdfoongpifbbhapnpbocfoijkglegpd`
+- **Windows**: `%LOCALAPPDATA%\Google\Chrome\User Data\Default\Extensions\cgdogkhjnbbifpaoopigcedehleknlmj`
+- **Mac**: `~/Library/Application Support/Google/Chrome/Default/Extensions/cgdogkhjnbbifpaoopigcedehleknlmj`
+- **Linux**: `~/.config/google-chrome/Default/Extensions/cgdogkhjnbbifpaoopigcedehleknlmj`
 
 このフォルダ内の JS ファイル（`background.js`, `content.js` 等）を開き、GitHub 上のコードと比較してみてください。VoiceMux Bridge はコードの難読化（読みづらくする処理）を行っていないため、そのまま比較が可能です。
 

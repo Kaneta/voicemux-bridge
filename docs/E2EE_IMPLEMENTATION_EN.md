@@ -85,9 +85,9 @@ Based on the implementation above:
 ### A. Inspect the installed files on your disk
 Chrome stores the source code of installed extensions on your local machine.
 
-- **Windows**: `%LOCALAPPDATA%\Google\Chrome\User Data\Default\Extensions\omdfoongpifbbhapnpbocfoijkglegpd`
-- **Mac**: `~/Library/Application Support/Google/Chrome/Default/Extensions/omdfoongpifbbhapnpbocfoijkglegpd`
-- **Linux**: `~/.config/google-chrome/Default/Extensions/omdfoongpifbbhapnpbocfoijkglegpd`
+- **Windows**: `%LOCALAPPDATA%\Google\Chrome\User Data\Default\Extensions\cgdogkhjnbbifpaoopigcedehleknlmj`
+- **Mac**: `~/Library/Application Support/Google/Chrome/Default/Extensions/cgdogkhjnbbifpaoopigcedehleknlmj`
+- **Linux**: `~/.config/google-chrome/Default/Extensions/cgdogkhjnbbifpaoopigcedehleknlmj`
 
 You can open the JS files (`background.js`, `content.js`, etc.) in these folders and compare them with the GitHub repository. VoiceMux Bridge does not minify or obfuscate its code, making comparison easy.
 
