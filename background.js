@@ -97,6 +97,28 @@ function notifyActiveTab(payload, eventName) {
   });
 }
 
+/**
+ * [Intent: Smart Tab Management]
+ * Finds an existing Hub tab for the given roomId and focuses it.
+ * If not found, creates a new one.
+ */
+function handleOpenEditor(roomId) {
+  const targetUrl = `https://hub.knc.jp/${roomId}`;
+  
+  chrome.tabs.query({ url: "*://hub.knc.jp/*" }, (tabs) => {
+    const existingTab = tabs.find(t => t.url.includes(roomId));
+    
+    if (existingTab) {
+      chrome.tabs.update(existingTab.id, { active: true });
+      chrome.windows.update(existingTab.windowId, { focused: true });
+      console.log("VoiceMux: Focused existing Hub tab.");
+    } else {
+      chrome.tabs.create({ url: targetUrl });
+      console.log("VoiceMux: Created new Hub tab.");
+    }
+  });
+}
+
 async function connect() {
   if (socket && (socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN)) {
     return;
@@ -131,6 +153,11 @@ async function connect() {
     }
 
     notifyActiveTab(payload, eventName);
+
+    // [Intent: Remote-to-Local OS Interaction]
+    if (eventName === "remote_command" && payload.action === "OPEN_EDITOR") {
+      handleOpenEditor(currentRoomId);
+    }
 
     if (eventName === "phx_reply" && payload?.status === "ok") {
       console.log("VoiceMux: Channel Joined Successfully.");
