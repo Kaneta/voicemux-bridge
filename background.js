@@ -108,7 +108,7 @@ async function handleOpenEditor(roomId) {
   const targetUrl = `https://hub.knc.jp/${roomId}${key ? "#key=" + key : ""}`;
   
   chrome.tabs.query({ url: "*://hub.knc.jp/*" }, (tabs) => {
-    const existingTab = tabs.find(t => t.url.includes(roomId));
+    const existingTab = tabs.find(t => {return t.url.includes(roomId);});
     
     if (existingTab) {
       // If key is missing in URL but we have it, we could update it, 
