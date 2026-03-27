@@ -5,41 +5,20 @@
   "description": {
     "message": "VoiceMux Pairing with Direct Secure Push Sync and Custom Adapters"
   },
-  "tagline": {
-    "message": "Smartphone as a Remote Mic"
-  },
   "waiting_hub_main": {
-    "message": "First, let's link with the Hub"
+    "message": "Connect your phone"
   },
-  "waiting_hub_sub": {
-    "message": "Once you open the VoiceMux Hub site, this extension will be linked automatically."
-  },
-  "btn_open_hub": {
-    "message": "🚀 Open Hub to Link"
-  },
-  "ready_to_sync": {
-    "message": "Ready to Connect!"
-  },
-  "sync_instruction": {
-    "message": "Open Hub on PC to show pairing QR."
-  },
-  "btn_show_qr_on_hub": {
-    "message": "Connect Smartphone"
-  },
-  "btn_copy_link": {
-    "message": "Copy Link"
-  },
-  "btn_copy_success": {
-    "message": "Copied!"
+  "btn_open_pair_surface": {
+    "message": "Connect Phone"
   },
   "btn_manage_librarian": {
-    "message": "🪄 Fix Errors & Generate Prompts"
+    "message": "Open VoiceMuxHub"
   },
   "btn_reset_connection": {
-    "message": "Reset Connection"
+    "message": "Reset Room"
   },
   "confirm_reset": {
-    "message": "Reset connection and re-pair?"
+    "message": "This will disconnect the PC and smartphone.\nDraft text being edited in this room will be cleared on both the PC and the smartphone.\nIf you need to keep the draft, copy it first and save it by pasting into Spool or another app."
   },
   "link_support": {
     "message": "Support"
@@ -53,19 +32,17 @@
   "link_privacy": {
     "message": "Privacy"
   },
-  "room_label": {
-    "message": "Room: $ROOM_ID$",
-    "placeholders": {
-      "room_id": {
-        "content": "$1"
-      }
-    }
+  "mobile_ready_title": {
+    "message": "You can input text into websites on this PC from your smartphone."
   },
-  "room_loading": {
-    "message": "Room: Loading..."
+  "mobile_ready_copy": {
+    "message": "You can close this popup and keep using it. Open VoiceMuxHub only when you want to polish the text."
   },
-  "footer_secure": {
-    "message": "🔐 Secure Push-Sync Enabled"
+  "mobile_connected_note": {
+    "message": ""
+  },
+  "mobile_connecting_note": {
+    "message": "Phone presence is still being confirmed. If it already works, you can keep using voice input. Open VoiceMuxHub only when you want to polish the text."
   },
   "options_title": {
     "message": "VoiceMux Settings"
@@ -75,6 +52,21 @@
   },
   "options_description": {
     "message": "Define custom CSS selectors for your favorite sites. You can find pre-made configurations in our <a href=\"https://github.com/Kaneta/voicemux-bridge/blob/main/docs/community-adapters.md\" target=\"_blank\">Community Adapters Catalog</a>."
+  },
+  "options_operator_header": {
+    "message": "Operator Configuration"
+  },
+  "options_pair_url_label": {
+    "message": "Pairing Surface URL"
+  },
+  "options_hub_url_label": {
+    "message": "VoiceMuxHub URL"
+  },
+  "options_pair_url_invalid": {
+    "message": "Invalid Pairing Surface URL"
+  },
+  "options_hub_url_invalid": {
+    "message": "Invalid VoiceMuxHub URL"
   },
   "btn_save_config": {
     "message": "Save Configuration"

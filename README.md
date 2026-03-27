@@ -1,33 +1,34 @@
-# VoiceMux Bridge v2.1.0 🛰️
+# VoiceMux Bridge
 
-VoiceMux Bridge は、スマートフォンの音声入力を PC 上のあらゆるウェブサイト（ChatGPT, Gmail, Slack 等）にリアルタイムで挿入するブラウザ拡張機能です。
+VoiceMux Bridge is a Chrome extension that receives encrypted room traffic, decrypts it locally, and injects text into the active web page on your PC.
 
-## 🚀 v2.1.0 の新機能: Multi-language Support & Secure Push-Sync
-従来のバージョン（v1.x）で行っていた「定期的なページ監視」や「手動での ID 取得」を完全に廃止しました。
+## Role
 
-- **多言語対応 (i18n)**: 日本語と英語の表示に完全対応。
-- **ゼロ設定同期**: [VoiceMux Hub](https://hub.knc.jp) を開くだけで、セッション情報が安全かつ即座に拡張機能へプッシュされます。
-- **ハイブリッド・ペアリング**: 一度連携すれば、次回からはキャッシュを使用して即座に QR コードを表示。
-- **プライバシー第一**: クレデンシャル（トークンや暗号鍵）が HTML 上に露出することなく、ブラウザの正規メッセージング API で受け渡しされます。
+- Receives encrypted relay traffic and injects text into the active page.
+- Stores synced room/auth state from trusted first-party pairing surfaces.
+- Exposes a minimal popup for pairing, launch, and reset.
+- Treats draft text as room-level state; `CLEAR` should wipe the active page draft without forcing a full room re-pair.
 
-## 🛠 インストールと使い方
-1. [Chrome ウェブストア](https://chromewebstore.google.com/detail/voicemux-bridge/agkglknmadfhdfobmgecllpgoecebdip) からインストール。
-2. ツールバーのパズルアイコンから VoiceMux Bridge を「ピン留め」します。
-3. [VoiceMux Hub](https://hub.knc.jp) を開き、初期化を完了させます（自動的に拡張機能へ同期されます）。
-4. 拡張アイコンをクリックし、表示された QR コードをスマホでスキャンすれば準備完了です。
+Reset semantics memo: `docs/RESET_ROOM_SPEC_JA.md`
 
-## 🔐 セキュリティ (E2EE)
-VoiceMux は **End-to-End 暗号化 (E2EE)** を採用しています。
-音声から変換されたテキストは、ブラウザを離れる前に**あなたのデバイス上**で暗号化されます。中継サーバー（v.knc.jp）は暗号化されたデータのみを転送し、その中身を解読することは暗号学的に不可能です。
+## Security Boundary
 
-詳細な実装の証拠は [E2EE実装技術レポート](./docs/E2EE_IMPLEMENTATION_JA.md) を参照してください。
+- The extension does not issue rooms or tokens.
+- The extension does not generate QR pairing URLs.
+- The extension accepts `SYNC_AUTH` only from trusted first-party origins declared in `manifest.json`.
+- The extension stores room credentials in `chrome.storage.local` and performs decryption inside the background service worker before dispatching plaintext to the active tab.
 
-## 📊 プロジェクト統計 (v2.1.0)
-VoiceMux Bridge は、軽量で透明性の高い設計を維持しています。
-- **総コード行数**: 約 1,050 行 (JS/HTML/Manifest)
-- **依存関係**: ゼロ (QR生成ライブラリ 1つのみを同梱)
-- **通信先**: `knc.jp` ドメインに限定
+The extension does not own QR pairing UX. Trusted first-party VoiceMux web surfaces sync the current room snapshot into the extension, while VoiceMuxHub remains the review/polish surface when needed.
 
-## 📄 ライセンス
-このプロジェクトは [LICENSE](./LICENSE) に基づいて公開されています。
-クライアントサイドのコードは完全にオープンソースであり、誰でも監査可能です。
+## Local Development
+
+```bash
+npm install
+npm run lint:ai
+```
+
+Load the extension from this directory in Chrome developer mode.
+
+## License
+
+This repository is licensed under MIT. See `LICENSE`.

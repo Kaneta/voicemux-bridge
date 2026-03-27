@@ -1,22 +1,36 @@
 # Privacy Policy for VoiceMux Bridge
 
-Last updated: 2026-02-21
+Last updated: 2026-03-27
 
 ## 1. Data Collection
-VoiceMux Bridge does **not** collect, store, or transmit any personal data, keystrokes, or browsing history to our servers.
+VoiceMux Bridge does **not** send your browsing history, page contents, or typed text to our servers as plaintext.
+
+The extension stores only the minimum local state needed to operate:
+
+- room credentials required to join the current relay room
+- your local extension settings
+- optional custom site adapters that you configure yourself
+- temporary debug events stored locally for troubleshooting
 
 ## 2. End-to-End Encryption (E2EE)
-All data transmitted from your mobile device to this extension is encrypted using Client-Side AES-GCM (128-bit).
-- **Decryption Keys**: These keys are generated within VoiceMux Hub and securely pushed to the extension via the browser's internal messaging API. They are stored in `chrome.storage.local`.
-- **Zero-Knowledge**: Keys are shared with your mobile device via URL hash fragments (`#key=...`). These fragments are handled exclusively by the browser and are never sent to any server by design.
+Room text sent from the mobile device to the extension is encrypted with client-side AES-GCM before it reaches the relay server.
+
+- **Decryption Keys**: Keys are generated on the trusted first-party desktop pairing surface and pushed to the extension through Chrome's internal extension messaging API (`SYNC_AUTH`). They are stored in `chrome.storage.local`.
+- **Local Decryption**: Decryption happens inside the extension background service worker. Content scripts receive plaintext only after the extension has decrypted it locally.
+- **Zero-Knowledge Key Transport**: The encryption key is carried to the mobile device via the URL hash fragment (`#key=...`). Hash fragments are handled by the browser and are not sent to the server by design.
 
 ## 3. Permissions
 The extension requires the following permissions to function:
-- **activeTab**: Used only to inject text into the input field of the website you are currently using, and only upon your explicit request via the paired mobile device.
-- **storage**: Used to save your local configuration, including your unique Room ID, encryption key, and any Custom Site Adapters you define.
+- **activeTab**: Used to identify and interact with the currently active page when the paired room sends an explicit command.
+- **storage**: Used to store room credentials, local settings, and custom adapters.
+- **alarms**: Used to keep the Manifest V3 background worker healthy enough to maintain relay connectivity.
+
+The extension also declares host permissions for the VoiceMux first-party origins used for relay status, pairing, and review/polish handoff.
 
 ## 4. Third-Party Services
-VoiceMux Bridge acts as a bridge between your mobile device and the AI services you choose to use (e.g., Gemini, ChatGPT). We do not control and are not responsible for the privacy practices of those third-party services.
+VoiceMux Bridge can inject text into third-party websites that you choose to use (for example ChatGPT, Gemini, Gmail, Slack, or Notion). Those websites are outside our control and have their own privacy policies.
+
+When you choose to open VoiceMuxHub for review or polishing, that flow is handled by our first-party web surfaces (`hub.knc.jp` and `pair.knc.jp`) plus the relay service at `v.knc.jp`.
 
 ## 5. Contact
 If you have any questions about this Privacy Policy, please open an issue on our [GitHub repository](https://github.com/Kaneta/voicemux-bridge).

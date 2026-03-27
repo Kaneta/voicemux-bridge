@@ -1,173 +1,270 @@
-// VoiceMux Popup JS (v2.1.1 Finalized UI)
-// [Intent: Chrome 拡張機能を「状態監視ツール」へと純化させ、UIロジック（QR生成/成功アニメーション等）をHubに集約することで、審査の不確実性と保守コストを最小化する。]
 document.addEventListener("DOMContentLoaded", async () => {
-  // Localization
   localize();
+  const t = (key) => {return chrome.i18n.getMessage(key) || "";};
 
-  // Version Display
   const versionDisplay = document.getElementById("version-display");
+  const contentView = document.getElementById("content-view");
+  const contentTitle = document.getElementById("content-title");
+  const contentCopy = document.getElementById("content-copy");
+  const primaryAction = document.getElementById("primary-action");
+  const primaryActionSkeleton = document.getElementById("primary-action-skeleton");
+  const primaryNote = document.getElementById("primary-note");
+  const btnResetGlobal = document.getElementById("btn-global-reset");
+
+  const MIN_LOADING_MS = 400;
+  const MAX_AUTH_WAIT_MS = 2000;
+  const loadStartedAt = Date.now();
+  let hasResolvedInitialState = false;
+  let maxWaitTimer = null;
+
   if (versionDisplay) {
     versionDisplay.innerText = `v${chrome.runtime.getManifest().version}`;
   }
 
-    const unlinkedView = document.getElementById("unlinked-view");
-    const linkedView = document.getElementById("linked-view");
-  
-    // System Status Check (Non-blocking)
-    try {
-      const statusRes = await fetch("https://v.knc.jp/api/status");
-      if (statusRes.ok) {
-        const status = await statusRes.json();
-        if (status.is_maintenance) {
-          const notice = document.getElementById("maintenance-notice");
-          const link = document.getElementById("maintenance-link");
-          if (notice && link) {
-            notice.style.display = "block";
-            link.href = status.info_url;
-          }
+  try {
+    const statusRes = await fetch("https://v.knc.jp/api/status");
+    if (statusRes.ok) {
+      const status = await statusRes.json();
+      if (status.is_maintenance) {
+        const notice = document.getElementById("maintenance-notice");
+        const link = document.getElementById("maintenance-link");
+        if (notice && link) {
+          notice.style.display = "block";
+          link.href = status.info_url;
         }
       }
-    } catch (e) {
-      console.warn("VoiceMux: Failed to fetch system status.", e);
     }
-  
-      const qrcodeLink = document.getElementById("qrcode-link");
-    const roomIdDisplay = document.getElementById("room-id");
-    const btnOpenHub = document.getElementById("btn-open-hub");
-    const statusIndicator = document.getElementById("status-indicator");
-    const hubLink = document.getElementById("hub-link");
-    const phoneStatusText = document.getElementById("phone-status-text");
+  } catch (e) {
+    console.warn("VoiceMux: Failed to fetch system status.", e);
+  }
 
-    // Global Reset Connection Logic
-    const handleReset = async () => {
-        if (confirm(chrome.i18n.getMessage("confirm_reset") || "Reset connection?")) {
-            await chrome.storage.local.remove(["voicemux_room_id", "voicemux_token", "voicemux_key", "voicemux_paired"]);
-            chrome.runtime.sendMessage({ action: "check_connection" });
-            const data = await chrome.storage.local.get(["voicemux_hub_url"]);
-            let hubOrigin = "https://hub.knc.jp";
-            if (data.voicemux_hub_url) {
-              hubOrigin = new URL(data.voicemux_hub_url).origin;
-            }
-            chrome.tabs.create({ url: `${hubOrigin}?action=reset` });
-            window.close();
-        }
-    };
+  const handleReset = async () => {
+    if (!confirm(chrome.i18n.getMessage("confirm_reset") || "Reset room?")) {
+      return;
+    }
 
-    const btnResetGlobal = document.getElementById("btn-global-reset");
-    if (btnResetGlobal) {btnResetGlobal.onclick = handleReset;}
+    await chrome.runtime.sendMessage({ action: "RESET_ROOM" }).catch(() => {
+      return chrome.storage.local.remove([
+        "voicemux_room_id",
+        "voicemux_token",
+        "voicemux_key",
+        "voicemux_paired",
+        "voicemux_pairing_code",
+        "voicemux_mobile_connected"
+      ]);
+    });
 
-    // 1. Retrieve credentials from storage
-    // [Intent: ストレージの変更（Hub側からのSYNC_AUTHメッセージによってトリガーされる）を監視し、リアクティブにUIを更新する。]
-    async function updateUI() {
-        const data = await chrome.storage.local.get(["voicemux_room_id", "voicemux_token", "voicemux_key", "voicemux_hub_url", "voicemux_paired"]);
-        const roomId = data.voicemux_room_id;
-        const token = data.voicemux_token;
-        const keyBase64 = data.voicemux_key;
-        const isPaired = data.voicemux_paired;
-        
-        let hubOrigin = "https://hub.knc.jp";
-        try {
-            const rawHubUrl = data.voicemux_hub_url || "https://hub.knc.jp";
-            hubOrigin = new URL(rawHubUrl).origin;
-        } catch (e) {
-          console.warn("VoiceMux: Invalid hub URL in storage.", e);
-        }
+    renderLoading();
+    hasResolvedInitialState = true;
+    void updateUI({ forceResolve: true });
+  };
 
-        if (roomId && token && keyBase64) {
-            // --- LINKED STATE (READY) ---
-            linkedView.style.display = "flex";
-            unlinkedView.style.display = "none";
-            statusIndicator?.classList.add("online");
+  if (btnResetGlobal) {
+    btnResetGlobal.onclick = handleReset;
+  }
 
-            // Update Phone Status Text
-            // [Intent: 成功アニメーションをHubに譲り、拡張機能側はステータスの文字色とテキスト変更のみを行うことでUIロジックを極小化。]
-            if (phoneStatusText) {
-                if (isPaired) {
-                    phoneStatusText.innerText = "Connected";
-                    phoneStatusText.className = "status-value connected";
-                } else {
-                    phoneStatusText.innerText = "Waiting...";
-                    phoneStatusText.className = "status-value";
-                }
-            }
+  function setButton(action) {
+    if (!primaryAction || !primaryActionSkeleton) {
+      return;
+    }
 
-            // Update Hub Link (Optional)
-            if (hubLink) {hubLink.href = `${hubOrigin}/welcome`;}
+    if (!action) {
+      primaryAction.classList.add("is-hidden");
+      primaryActionSkeleton.classList.remove("is-hidden");
+      primaryAction.onclick = null;
+      return;
+    }
 
-            const btnReset = document.getElementById("btn-reset-connection");
-            if (btnReset) {btnReset.onclick = handleReset;}
+    primaryAction.classList.remove("is-hidden");
+    primaryActionSkeleton.classList.add("is-hidden");
+    primaryAction.textContent = action.label;
+    primaryAction.onclick = action.onClick;
+  }
 
-            // Construct Pairing URL (Pointing to the dedicated Hub QR page)
-            // [Intent: UI is now fully centralized on hub.knc.jp/qr]
-            let pairingUrl = `${hubOrigin}/qr?uuid=${roomId}&token=${token}`;
-            
-            const displayRoomId = roomId.substring(0, 4).toUpperCase();
-            if (roomIdDisplay) {roomIdDisplay.innerText = displayRoomId;}
-            if (qrcodeLink) {qrcodeLink.href = pairingUrl;}
+  function renderLoading() {
+    contentView?.classList.add("is-loading");
+    contentView?.classList.add("is-action-only");
+    if (contentTitle) {
+      contentTitle.textContent = "";
+    }
+    if (contentCopy) {
+      contentCopy.textContent = "";
+      contentCopy.classList.add("is-hidden");
+    }
+    if (primaryNote) {
+      primaryNote.textContent = "";
+      primaryNote.classList.add("is-hidden");
+    }
+    if (btnResetGlobal) {
+      btnResetGlobal.classList.add("is-hidden");
+    }
+    setButton(null);
+  }
 
-            // Handle Copy Button
-            const copyBtn = document.getElementById("copy-btn");
-            const copyText = document.getElementById("copy-text");
-            if (copyBtn) {
-                copyBtn.onclick = async () => {
-                    try {
-                        await navigator.clipboard.writeText(pairingUrl);
-                        if (copyText) {copyText.innerText = chrome.i18n.getMessage("btn_copy_success");}
-                        copyBtn.classList.add("success");
-                        setTimeout(() => {
-                            if (copyText) {copyText.innerText = chrome.i18n.getMessage("btn_copy_link");}
-                            copyBtn.classList.remove("success");
-                        }, 2000);
-                    } catch (err) {
-                      console.error("VoiceMux: Failed to copy URL.", err);
-                    }
-                };
-            }
-        } else {
-      // --- UNLINKED STATE ---
-      unlinkedView.style.display = "flex";
-      linkedView.style.display = "none";
-      statusIndicator?.classList.remove("online");
+  function renderState({ title, copy, button, note, showReset }) {
+    contentView?.classList.remove("is-loading");
+    contentView?.classList.toggle("is-action-only", !title && !copy && !note);
 
-      if (btnOpenHub) {
-        btnOpenHub.onclick = () => {
-          chrome.tabs.create({ url: hubOrigin + "/qr" });
-        };
+    if (contentTitle) {
+      contentTitle.textContent = title;
+    }
+    if (contentCopy) {
+      contentCopy.textContent = copy;
+      contentCopy.classList.toggle("is-hidden", !copy);
+    }
+
+    setButton(button);
+
+    if (primaryNote) {
+      if (note) {
+        primaryNote.textContent = note;
+        primaryNote.classList.remove("is-hidden");
+      } else {
+        primaryNote.textContent = "";
+        primaryNote.classList.add("is-hidden");
       }
+    }
 
-      // Signal background to check connection
-      chrome.runtime.sendMessage({ action: "check_connection" });
+    if (btnResetGlobal) {
+      btnResetGlobal.classList.toggle("is-hidden", !showReset);
     }
   }
 
-  // Initial update
-  updateUI();
-  
-  // DESIGN INTENT: Reset pairing flag when opening to allow future re-pairs
-  chrome.storage.local.set({ "voicemux_paired": false });
+  /**
+   * [Intent: Resolve Product-Neutral Pairing Surface]
+   * Decoupled from VoiceMuxHub to support multiple target apps.
+   */
+  async function resolvePairOrigin() {
+    const data = await chrome.storage.local.get(["voicemux_pair_url"]);
+    try {
+      return new URL(data.voicemux_pair_url || "https://pair.knc.jp").origin;
+    } catch {
+      return "https://pair.knc.jp";
+    }
+  }
 
-  // Listen for storage changes
+  /**
+   * [Intent: Resolve Static Work Surface]
+   * Currently VoiceMuxHub remains the primary librarian/editor.
+   */
+  async function resolveHubOrigin() {
+    const data = await chrome.storage.local.get(["voicemux_hub_url"]);
+    try {
+      return new URL(data.voicemux_hub_url || "https://hub.knc.jp").origin;
+    } catch {
+      return "https://hub.knc.jp";
+    }
+  }
+
+  async function updateUI(options = {}) {
+    const forceResolve = !!options.forceResolve;
+    const data = await chrome.storage.local.get([
+      "voicemux_room_id",
+      "voicemux_token",
+      "voicemux_key",
+      "voicemux_hub_url",
+      "voicemux_mobile_connected"
+    ]);
+
+    const roomId = data.voicemux_room_id;
+    const token = data.voicemux_token;
+    const keyBase64 = data.voicemux_key;
+    const hasAuth = !!(roomId && token && keyBase64);
+
+    if (!hasResolvedInitialState && !hasAuth && !forceResolve) {
+      renderLoading();
+      return;
+    }
+
+    const elapsed = Date.now() - loadStartedAt;
+    const remainingMin = Math.max(0, MIN_LOADING_MS - elapsed);
+    if (!hasResolvedInitialState && remainingMin > 0) {
+      setTimeout(() => {
+        hasResolvedInitialState = true;
+        void updateUI({ forceResolve: true });
+      }, remainingMin);
+      return;
+    }
+
+    hasResolvedInitialState = true;
+    if (maxWaitTimer) {
+      clearTimeout(maxWaitTimer);
+      maxWaitTimer = null;
+    }
+
+    const hubOrigin = await resolveHubOrigin();
+    const pairOrigin = await resolvePairOrigin();
+
+    if (hasAuth) {
+      renderState({
+        title:
+          t("mobile_ready_title") ||
+          "You can input text into websites on this PC from your smartphone.",
+        copy:
+          t("mobile_ready_copy") ||
+          "You can close this popup and keep using voice input. Open VoiceMuxHub only when you want to confirm the link, review text, or polish the result.",
+        button: {
+          label: t("btn_manage_librarian") || "Open VoiceMuxHub",
+          onClick: () => {
+            chrome.tabs.create({ url: `${hubOrigin}/review/${roomId}` });
+          }
+        },
+        note: "",
+        showReset: true
+      });
+      return;
+    }
+
+    renderState({
+      title: "",
+      copy: "",
+      button: {
+        label: t("btn_open_pair_surface") || "Connect Phone",
+        onClick: () => {
+          chrome.tabs.create({ url: `${pairOrigin}/hub` });
+        }
+      },
+      note: "",
+      showReset: false
+    });
+  }
+
+  renderLoading();
+  maxWaitTimer = setTimeout(() => {
+    maxWaitTimer = null;
+    hasResolvedInitialState = true;
+    void updateUI({ forceResolve: true });
+  }, MAX_AUTH_WAIT_MS);
+
+  void updateUI();
+
   chrome.storage.onChanged.addListener((changes, namespace) => {
-    if (namespace === "local" && (changes.voicemux_room_id || changes.voicemux_token || changes.voicemux_paired)) {
-      updateUI();
+    if (
+      namespace === "local" &&
+      (changes.voicemux_room_id ||
+        changes.voicemux_token ||
+        changes.voicemux_key ||
+        changes.voicemux_mobile_connected)
+    ) {
+      void updateUI({ forceResolve: hasResolvedInitialState });
     }
   });
 });
 
 function localize() {
-  document.querySelectorAll("[data-i18n]").forEach(element => {
+  document.querySelectorAll("[data-i18n]").forEach((element) => {
     const key = element.getAttribute("data-i18n");
     const message = chrome.i18n.getMessage(key);
-    if (message) {
-      if (element.tagName === "INPUT" || element.tagName === "TEXTAREA") {
-        element.placeholder = message;
-      } else {
-        element.innerHTML = message;
-      }
+    if (!message) {
+      return;
+    }
+    if (element.tagName === "INPUT" || element.tagName === "TEXTAREA") {
+      element.placeholder = message;
+    } else {
+      element.innerHTML = message;
     }
   });
 
-  // Localize specialized links
   const guideLink = document.getElementById("guide-link");
   if (guideLink) {
     guideLink.href = chrome.i18n.getMessage("url_guide");

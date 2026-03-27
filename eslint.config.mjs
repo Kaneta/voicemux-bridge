@@ -15,6 +15,7 @@ export default [
       globals: {
         ...globals.browser,
         ...globals.webextensions,
+        ...globals.node,
         chrome: "readonly",
       },
     },
@@ -26,7 +27,7 @@ export default [
 
       // 2. No Complex Ternaries: Prefer explicit if/else blocks.
       "no-nested-ternary": "error",
-      "no-ternary": "warn", // Optional but encouraged for AI reliability
+      "no-ternary": "off",
 
       // 3. Error Prevention
       "no-unused-vars": "warn",

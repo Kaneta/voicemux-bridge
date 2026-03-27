@@ -5,41 +5,20 @@
   "description": {
     "message": "直接的かつ安全なプッシュ同期とカスタムアダプターを備えた VoiceMux ペアリング"
   },
-  "tagline": {
-    "message": "スマートフォンをリモートマイクとして活用"
-  },
   "waiting_hub_main": {
-    "message": "まずは Web サイトと連携しましょう"
+    "message": "スマホを接続"
   },
-  "waiting_hub_sub": {
-    "message": "VoiceMux Hub サイトを一度開くと、この拡張機能は自動的に連携されます。"
-  },
-  "btn_open_hub": {
-    "message": "🚀 Hub を開いて連携する"
-  },
-  "ready_to_sync": {
-    "message": "接続の準備完了"
-  },
-  "sync_instruction": {
-    "message": "PC で Hub を開き、QR コードを表示してください。"
-  },
-  "btn_show_qr_on_hub": {
-    "message": "スマートフォンを接続"
-  },
-  "btn_copy_link": {
-    "message": "リンクをコピー"
-  },
-  "btn_copy_success": {
-    "message": "コピーしました！"
+  "btn_open_pair_surface": {
+    "message": "スマホを接続"
   },
   "btn_manage_librarian": {
-    "message": "🪄 誤認識の修正・プロンプト生成"
+    "message": "VoiceMuxHub を開く"
   },
   "btn_reset_connection": {
-    "message": "接続をリセット"
+    "message": "ルームをリセット"
   },
   "confirm_reset": {
-    "message": "接続をリセットして再ペアリングしますか？"
+    "message": "この操作を行うと、PCとスマホの接続を解除します。\nこのルームで編集中の下書きは、PC側・スマホ側の両方でクリアされます。\n原稿を残したい場合は、先にコピーし、Spool などに貼り付けて保存してください。"
   },
   "link_support": {
     "message": "サポート"
@@ -53,19 +32,17 @@
   "link_privacy": {
     "message": "プライバシー"
   },
-  "room_label": {
-    "message": "ルーム: $ROOM_ID$",
-    "placeholders": {
-      "room_id": {
-        "content": "$1"
-      }
-    }
+  "mobile_ready_title": {
+    "message": "このPC上のWeb入力欄へ、スマホから音声入力できます。"
   },
-  "room_loading": {
-    "message": "ルーム: 読み込み中..."
+  "mobile_ready_copy": {
+    "message": "このまま閉じても使えます。校正が必要なときだけ VoiceMuxHub を開いてください。"
   },
-  "footer_secure": {
-    "message": "🔐 セキュアなプッシュ同期が有効です"
+  "mobile_connected_note": {
+    "message": ""
+  },
+  "mobile_connecting_note": {
+    "message": "スマホ確認中です。すでに使えていれば、そのまま音声入力できます。校正が必要なときだけ VoiceMuxHub を開いてください。"
   },
   "options_title": {
     "message": "VoiceMux 設定"
@@ -75,6 +52,21 @@
   },
   "options_description": {
     "message": "お気に入りのサイト用にカスタム CSS セレクターを定義します。作成済みの設定は <a href=\"https://github.com/Kaneta/voicemux-bridge/blob/main/docs/community-adapters.md\" target=\"_blank\">Community Adapters Catalog</a> で確認できます。"
+  },
+  "options_operator_header": {
+    "message": "オペレーター設定"
+  },
+  "options_pair_url_label": {
+    "message": "ペアリング画面のURL"
+  },
+  "options_hub_url_label": {
+    "message": "VoiceMuxHubのURL"
+  },
+  "options_pair_url_invalid": {
+    "message": "ペアリング画面のURLが不正です"
+  },
+  "options_hub_url_invalid": {
+    "message": "VoiceMuxHubのURLが不正です"
   },
   "btn_save_config": {
     "message": "設定を保存"

@@ -40,10 +40,11 @@ If we restricted permissions to "activeTab" (only when clicked), **you would hav
 
 We understand that "All Site Access" is a powerful permission. We balance this responsibility with the following transparency measures:
 
-- **Open Source Client:** The source code for the Chrome Extension is fully public on GitHub. This allows anyone to verify that data is encrypted *before* it leaves your browser and that we are not touching sensitive data like passwords.
-- **End-to-End Encryption (E2EE):** While our relay server operates in a private environment, it only handles encrypted blobs. Since the encryption happens in the open-source client, the server remains a "black box" that cannot see or log your actual text.
-- **Zero-Knowledge Key Exchange:** Your encryption keys are shared with your phone via URL hash fragments (`#key=...`). By technical design, these fragments are never sent to any server, ensuring your keys never touch the network.
-- **No Tracking:** We do not collect browsing history or analytics. Your encryption keys and Room IDs stay stored locally on your devices.
+- **Open Source Client:** The Chrome extension source is public. Anyone can inspect how room auth is stored, how relay traffic is decrypted, and how text is injected into the active page.
+- **Trusted First-Party Sync Only:** The extension accepts `SYNC_AUTH` only from trusted first-party origins declared in `manifest.json`, currently including `hub.knc.jp` and `pair.knc.jp`.
+- **End-to-End Encryption (E2EE):** The relay only transports encrypted payloads. Decryption happens locally inside the extension background worker, not on the server.
+- **Zero-Knowledge Key Exchange:** The encryption key reaches the mobile device via URL hash fragments (`#key=...`), which are not sent to the server.
+- **On-Device Local Storage:** Room credentials, settings, and adapters are stored in `chrome.storage.local`, which is local storage inside this device's Chrome profile. We do not run remote code or browser-history analytics from the extension.
 
 ---
 
@@ -58,4 +59,4 @@ Most essential productivity tools, such as **1Password, Grammarly, and DeepL**, 
 We chose this permission model to deliver the **fastest, most seamless input experience possible.** While the system warning looks intimidating, we stand behind our transparent, E2EE-secured architecture to earn your trust.
 
 ---
-*Last Updated: 2026-02-17*
+*Last Updated: 2026-03-27*

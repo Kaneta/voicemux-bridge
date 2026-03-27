@@ -2,402 +2,312 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <!-- [Intent: Status-Centric Dashboard Architecture.
-       This popup is a monitoring tool for Hub and Phone connectivity.
-       All interactive pairing logic (QR generation) is offloaded to the Hub to:
-       1. Simplify Extension security review (minimal UI logic).
-       2. Centralize device management in the primary Hub workspace. ] -->
   <style>
     :root {
-      /* M3 Light Palette (Violet baseline) */
-      --md-sys-color-primary: #6750A4;
-      --md-sys-color-on-primary: #FFFFFF;
-      --md-sys-color-primary-container: #EADDFF;
-      --md-sys-color-on-primary-container: #21005D;
-      --md-sys-color-secondary-container: #E8DEF8;
-      --md-sys-color-on-secondary-container: #1D192B;
-      --md-sys-color-surface: #FEF7FF;
-      --md-sys-color-on-surface: #1D1B20;
-      --md-sys-color-surface-variant: #E7E0EB;
-      --md-sys-color-on-surface-variant: #49454F;
-      --md-sys-color-outline: #79747E;
-      --md-sys-color-success: #10b981;
-      --md-sys-color-warning: #f59e0b;
+      --bg: #f5f4ef;
+      --surface-border: rgba(16, 24, 40, 0.08);
+      --ink: #111827;
+      --muted: #5b6472;
+      --muted-soft: #7b8494;
+      --accent: #0f9f7a;
+      --danger: #b42318;
+      --shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+      --radius-xl: 24px;
+      --radius-md: 14px;
+    }
 
-      /* Elevation */
-      --md-sys-elevation-1: 0px 1px 3px 1px rgba(0, 0, 0, 0.15), 0px 1px 2px 0px rgba(0, 0, 0, 0.3);
-      --md-sys-elevation-2: 0px 2px 6px 2px rgba(0, 0, 0, 0.15), 0px 1px 2px 0px rgba(0, 0, 0, 0.3);
+    * {
+      box-sizing: border-box;
     }
 
     body {
-      width: 320px;
-      font-family: 'Roboto', system-ui, -apple-system, sans-serif;
+      width: 352px;
       margin: 0;
-      padding: 20px 24px;
-      background-color: var(--md-sys-color-surface);
-      color: var(--md-sys-color-on-surface);
+      padding: 18px;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top right, rgba(15, 159, 122, 0.18), transparent 28%),
+        linear-gradient(180deg, #faf9f4 0%, var(--bg) 100%);
+      font-family: "Geist", "Avenir Next", "Segoe UI Variable", "Hiragino Sans", "Noto Sans JP", sans-serif;
       -webkit-font-smoothing: antialiased;
+    }
+
+    .shell {
+      position: relative;
       overflow: hidden;
+      border: 1px solid var(--surface-border);
+      border-radius: 28px;
+      background: rgba(255, 255, 255, 0.78);
+      backdrop-filter: blur(18px);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .shell::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(135deg, rgba(15, 159, 122, 0.08), transparent 44%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.5), transparent 60%);
+      pointer-events: none;
+    }
+
+    .header,
+    .hero,
+    .maintenance-notice,
+    .footer-actions,
+    .footer-links {
+      position: relative;
+      z-index: 1;
     }
 
     .header {
-      margin-bottom: 20px;
       display: flex;
+      align-items: flex-start;
       justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .brand-top {
+      display: flex;
       align-items: center;
+      gap: 10px;
+      min-width: 0;
     }
 
     h1 {
-      font-size: 18px;
-      font-weight: 700;
       margin: 0;
-      color: var(--md-sys-color-primary);
-      letter-spacing: -0.02em;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      font-size: 17px;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      font-weight: 800;
+      color: var(--ink);
+      white-space: nowrap;
     }
 
     .app-version {
-      font-size: 10px;
-      font-weight: 400;
-      opacity: 0.6;
-      background: var(--md-sys-color-surface-variant);
-      padding: 2px 6px;
-      border-radius: 4px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(17, 24, 39, 0.05);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
     }
 
     .maintenance-notice {
-      background: var(--md-sys-color-warning);
-      color: white;
-      padding: 4px 8px;
-      border-radius: 8px;
-      font-size: 11px;
+      display: none;
+      margin-bottom: 16px;
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      background: #fff2cc;
+      color: #7a4b00;
+      font-size: 12px;
       font-weight: 700;
-      margin-bottom: 12px;
-      width: 100%;
+      line-height: 1.45;
     }
 
     .maintenance-notice a {
-      color: white;
-      text-decoration: underline;
+      color: inherit;
     }
 
-    .status-indicator-group {
+    .hero {
       display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .status-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background-color: var(--md-sys-color-warning);
-      box-shadow: 0 0 0 2px var(--md-sys-color-surface);
-    }
-
-    .status-dot.online {
-      background-color: var(--md-sys-color-success);
-      box-shadow: 0 0 8px var(--md-sys-color-success);
-    }
-
-    /* Views */
-    #unlinked-view, #linked-view {
-      display: none;
       flex-direction: column;
-      align-items: center;
-      text-align: center;
-      animation: fadeIn 0.3s ease-out;
+      gap: 14px;
     }
 
-    /* Common Button Style (MD3 Tonal Capsule) */
-    .btn-tonal {
+    .hero-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .hero-title {
+      margin: 0;
+      color: var(--ink);
+      font-size: 16px;
+      line-height: 1.35;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      text-wrap: pretty;
+    }
+
+    .hero-copy {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+      text-wrap: pretty;
+    }
+
+    .action-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 18px 0 12px;
+    }
+
+    .btn-primary,
+    .btn-primary-skeleton {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      padding: 12px 24px;
-      background-color: var(--md-sys-color-secondary-container);
-      color: var(--md-sys-color-on-secondary-container);
-      border: none;
-      border-radius: 9999px;
-      font-size: 14px;
-      font-weight: 700;
+      width: 100%;
+      min-height: 48px;
+      padding: 12px 16px;
+      border-radius: 17px;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
       text-decoration: none;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: transform 0.16s ease, background-color 0.16s ease, border-color 0.16s ease;
+    }
+
+    .btn-primary {
+      border: 1px solid rgba(15, 159, 122, 0.22);
+      background: rgba(15, 159, 122, 0.10);
+      color: #0c7c60;
       cursor: pointer;
     }
 
-    .btn-tonal:hover {
-      filter: brightness(0.95);
-      box-shadow: var(--md-sys-elevation-1);
+    .btn-primary:hover {
+      background: rgba(15, 159, 122, 0.14);
+      border-color: rgba(15, 159, 122, 0.30);
+      transform: translateY(-1px);
     }
 
-    .btn-tonal:active {
-      transform: scale(0.98);
+    .btn-primary:active {
+      transform: translateY(0);
     }
 
-    /* Footer Links */
+    .btn-primary-skeleton {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      background: rgba(148, 163, 184, 0.14);
+      color: transparent;
+    }
+
+    .btn-primary-skeleton::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      transform: translateX(-100%);
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+      animation: shimmer 1.2s ease-in-out infinite;
+    }
+
+    .support-copy {
+      margin: 0;
+      min-height: 1.5rem;
+      padding: 0 2px;
+      color: var(--muted-soft);
+      font-size: 12px;
+      line-height: 1.5;
+      text-align: center;
+      text-wrap: pretty;
+    }
+
+    .footer-actions {
+      display: flex;
+      justify-content: center;
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(17, 24, 39, 0.08);
+    }
+
+    .btn-reset {
+      border: none;
+      background: none;
+      color: var(--danger);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 0;
+    }
+
     .footer-links {
       display: flex;
       justify-content: center;
       gap: 16px;
-      margin-top: 16px;
-      margin-bottom: 4px;
+      margin-top: 14px;
+      padding-bottom: 2px;
     }
 
     .f-link {
+      color: var(--muted);
       font-size: 11px;
-      color: var(--md-sys-color-primary);
-      text-decoration: none;
-      opacity: 0.7;
-      font-weight: 600;
-    }
-    .f-link:hover { opacity: 1; text-decoration: underline; }
-
-    /* Unlinked View Specific */
-    .sync-wait-container {
-      position: relative;
-      width: 80px;
-      height: 80px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 16px;
-    }
-
-    .pulse {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      background-color: var(--md-sys-color-primary);
-      opacity: 0.2;
-      animation: pulse 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
-    }
-
-    .waiting-text-main {
-      font-size: 1.1rem;
-      font-weight: 800;
-      margin: 0 0 12px 0;
-      color: var(--md-sys-color-on-surface);
-      line-height: 1.3;
-    }
-
-    .waiting-text-sub {
-      font-size: 13px;
-      color: var(--md-sys-color-on-surface-variant);
-      margin-bottom: 24px;
-      line-height: 1.5;
-      padding: 0 8px;
-    }
-
-    /* Linked View Specific */
-    .ready-msg {
-      font-size: 1.15rem;
-      font-weight: 900;
-      color: var(--md-sys-color-primary);
-      margin: 0 0 8px 0;
-      line-height: 1.2;
-    }
-
-    .sync-instruction {
-      font-size: 13px;
-      color: var(--md-sys-color-on-surface-variant);
-      margin-bottom: 24px;
-      line-height: 1.4;
-      padding: 0 12px;
-      white-space: nowrap;
-    }
-
-    #qrcode-link {
-      display: block;
-      margin-bottom: 12px;
-      text-decoration: none;
-      transition: transform 0.2s;
-    }
-
-    /* Status Monitor Layout */
-    .status-monitor {
-      width: 100%;
-      background: var(--md-sys-color-surface-variant);
-      border-radius: 12px;
-      padding: 12px;
-      margin-bottom: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      box-sizing: border-box;
-    }
-
-    .status-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 13px;
-    }
-
-    .status-label {
-      font-weight: 600;
-      opacity: 0.8;
-    }
-
-    .status-value {
-      font-weight: 800;
-      color: var(--md-sys-color-primary);
-    }
-
-    .status-value.connected {
-      color: var(--md-sys-color-success);
-    }
-
-    .btn-connect-phone {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-      padding: 24px;
-      background: white;
-      border-radius: 20px;
-      box-shadow: var(--md-sys-elevation-2);
-      border: 1px solid var(--md-sys-color-surface-variant);
-      color: var(--md-sys-color-primary);
-      text-decoration: none;
-      margin-bottom: 16px;
-    }
-
-    .btn-connect-phone:hover {
-      background-color: var(--md-sys-color-primary-container);
-    }
-
-    .btn-connect-phone svg {
-      color: var(--md-sys-color-primary);
-    }
-
-    .btn-connect-phone span {
-      font-size: 14px;
       font-weight: 700;
+      text-decoration: none;
     }
 
-    .room-info {
-      font-family: var(--font-mono, monospace);
-      font-size: 18px;
-      font-weight: 800;
-      color: var(--md-sys-color-primary);
-      background: var(--md-sys-color-secondary-container);
-      padding: 4px 12px;
-      border-radius: 8px;
-      margin-bottom: 12px;
-      letter-spacing: 2px;
+    .f-link:hover,
+    .btn-reset:hover {
+      text-decoration: underline;
     }
 
-    /* Subtle Copy Button */
-    .btn-copy-link {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 8px 24px;
-      background: transparent;
-      color: var(--md-sys-color-primary);
-      border: 1px solid var(--md-sys-color-outline);
-      border-radius: 100px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      margin-bottom: 24px;
-      transition: all 0.2s;
+    .is-hidden {
+      display: none !important;
     }
 
-    .btn-copy-link:hover { background-color: rgba(103, 80, 164, 0.05); }
-    .btn-copy-link.success { border-color: var(--md-sys-color-success); color: var(--md-sys-color-success); }
-
-    @keyframes pulse {
-      0% { transform: scale(1); opacity: 0.4; }
-      100% { transform: scale(1.6); opacity: 0; }
+    .is-loading .support-copy {
+      display: none;
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(4px); }
-      to { opacity: 1; transform: translateY(0); }
+    @keyframes shimmer {
+      100% {
+        transform: translateX(100%);
+      }
     }
   </style>
 </head>
 <body>
-  <div class="header">
-    <h1>
-      <span data-i18n="name">VoiceMux Bridge</span>
-      <span id="version-display" class="app-version">v...</span>
-    </h1>
-    <div class="status-indicator-group">
-      <div id="status-indicator" class="status-dot"></div>
-    </div>
-  </div>
-
-  <!-- View 1: Unlinked -->
-  <div id="unlinked-view">
-    <div class="sync-wait-container">
-      <div class="pulse"></div>
-      <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--md-sys-color-primary); z-index: 1;">
-        <path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
-      </svg>
-    </div>
-    <h2 class="waiting-text-main" data-i18n="waiting_hub_main">First, let's link with the Hub</h2>
-    <p class="waiting-text-sub" data-i18n="waiting_hub_sub">Once you open the VoiceMux Hub site, the pairing QR code will appear here automatically.</p>
-    <button id="btn-open-hub" class="btn-tonal" data-i18n="btn_open_hub">🚀 Open Hub to Link</button>
-  </div>
-
-  <!-- View 2: Linked (Ready) -->
-  <div id="linked-view">
-    <div id="maintenance-notice" class="maintenance-notice" style="display: none;">
-      <a id="maintenance-link" href="#" target="_blank">🚧 Maintenance (Details)</a>
-    </div>
-
-    <div class="status-monitor">
-      <div class="status-item">
-        <span class="status-label">🌐 Hub:</span>
-        <span id="hub-status-text" class="status-value">Linked</span>
-      </div>
-      <div class="status-item">
-        <span class="status-label">📱 Phone:</span>
-        <span id="phone-status-text" class="status-value">Waiting...</span>
+  <div class="shell">
+    <div class="header">
+      <div class="brand">
+        <div class="brand-top">
+          <h1 data-i18n="name">VoiceMux Bridge</h1>
+          <span id="version-display" class="app-version">v...</span>
+        </div>
       </div>
     </div>
 
-    <a id="qrcode-link" href="#" target="_blank" class="btn-connect-phone">
-      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
-        <line x1="12" y1="18" x2="12.01" y2="18"></line>
-      </svg>
-      <span data-i18n="btn_show_qr_on_hub">Connect Smartphone</span>
-    </a>
+    <div id="maintenance-notice" class="maintenance-notice">
+      <a id="maintenance-link" href="#" target="_blank">Maintenance</a>
+    </div>
 
-    <div id="room-id" class="room-info" data-i18n="room_loading">Room: Loading...</div>
+    <div id="content-view" class="hero is-loading">
+      <section class="hero-panel">
+        <h2 id="content-title" class="hero-title"></h2>
+        <p id="content-copy" class="hero-copy"></p>
+      </section>
 
-    <button id="copy-btn" class="btn-copy-link">
-      <span id="copy-text" data-i18n="btn_copy_link">Copy Link</span>
-    </button>
+      <div class="action-stack">
+        <button id="primary-action" class="btn-primary is-hidden" type="button"></button>
+        <div id="primary-action-skeleton" class="btn-primary-skeleton" aria-hidden="true">Loading...</div>
+        <p id="primary-note" class="support-copy">&nbsp;</p>
+      </div>
+    </div>
 
-    <a href="https://hub.knc.jp" id="hub-link" target="_blank" class="btn-tonal" data-i18n="btn_manage_librarian">
-      🪄 Fix Errors & Generate Prompts
-    </a>
+    <div class="footer-actions">
+      <button id="btn-global-reset" class="btn-reset is-hidden" data-i18n="btn_reset_connection">Reset Room</button>
+    </div>
 
-    <button id="btn-reset-connection" class="f-link" style="margin-top: 12px; background: none; border: none; cursor: pointer; text-decoration: underline;" data-i18n="btn_reset_connection">
-      Reset Connection
-    </button>
-  </div>
-
-  <div id="global-actions" style="margin-top: 16px; border-top: 1px solid var(--md-sys-color-surface-variant); padding-top: 12px; display: flex; justify-content: center;">
-    <button id="btn-global-reset" class="f-link" style="background: none; border: none; cursor: pointer;" data-i18n="btn_reset_connection">
-      Reset Connection
-    </button>
-  </div>
-
-  <div class="footer-links">
-    <a href="https://github.com/Kaneta/voicemux-bridge/issues" target="_blank" class="f-link" data-i18n="link_support">Support</a>
-    <a href="https://knc.jp/ja/docs/voicemux-bridge/" id="guide-link" target="_blank" class="f-link" data-i18n="link_guide">Guide</a>
-    <a href="https://github.com/Kaneta/voicemux-bridge/blob/main/PRIVACY.md" target="_blank" class="f-link" data-i18n="link_privacy">Privacy</a>
+    <div class="footer-links">
+      <a href="https://github.com/Kaneta/voicemux-bridge/issues" target="_blank" class="f-link" data-i18n="link_support">Support</a>
+      <a href="https://knc.jp/ja/docs/voicemux-bridge/" id="guide-link" target="_blank" class="f-link" data-i18n="link_guide">Guide</a>
+      <a href="https://github.com/Kaneta/voicemux-bridge/blob/main/PRIVACY.md" target="_blank" class="f-link" data-i18n="link_privacy">Privacy</a>
+    </div>
   </div>
 
   <script src="popup.js"></script>

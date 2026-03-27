@@ -1,20 +1,20 @@
 # VoiceMux Bridge User Guide 🛰️
 
 Welcome to VoiceMux Bridge!
-This extension allows you to use your smartphone's familiar keyboard to type seamlessly into any input field on your PC (ChatGPT, Gemini, Gmail, Slack, etc.).
+This extension lets you use smartphone voice dictation, such as Gboard or iPhone Dictation, to enter text into any input field on your PC (ChatGPT, Gemini, Gmail, Slack, and more).
 
 No complex setup is required. Let's get started!
 
 ---
 
-## 1. Preparation: Sync with the Hub
+## 1. Preparation: Sync the Pairing Session
 
 First, enable the extension.
 
-1.  Open [VoiceMux Hub](https://hub.knc.jp) on your PC.
-2.  As soon as the site opens, your secure credentials will be automatically synced to this extension.
+1.  Open either [pair.knc.jp/hub](https://pair.knc.jp/hub) or [VoiceMux Hub](https://hub.knc.jp) on your PC.
+2.  As soon as the first-party pairing surface opens, the current room snapshot is automatically synced to this extension.
 3.  Click the **VoiceMux icon (microphone stand mark)** in the top right of your browser.
-4.  If you see "Ready to Pair!" and a QR code, you're all set!
+4.  If the popup says **"Connect Phone"**, or if it already says you can use voice input on this PC, you're ready.
 
 > 💡 **Tip**: "Pin" the icon to your toolbar for instant access to the QR code.
 
@@ -40,12 +40,11 @@ The best part of VoiceMux is using **"Gboard" or "iPhone Voice Dictation"** dire
 
 ---
 
-## 4. Advance: Grow Your Dictionary
+## 4. Optional: Open VoiceMuxHub for Polishing
 
-VoiceMux Hub helps you fix common misrecognitions of technical terms or names.
+The core feature of VoiceMux Bridge is direct input into websites on your PC. You do **not** need to keep VoiceMuxHub open for normal dictation.
 
-*   **Error Correction**: Fixing text in the Hub editor teaches the AI to be smarter next time.
-*   **Prompt Generation**: Click **"🪄 Fix Errors & Generate Prompts"** at the bottom of the extension to open the Hub and optimize your input for AI assistants.
+Open VoiceMuxHub mainly when you want to polish the text.
 
 ---
 
@@ -53,13 +52,13 @@ VoiceMux Hub helps you fix common misrecognitions of technical terms or names.
 
 VoiceMux prioritizes your privacy.
 *   **Private Data**: Your text is encrypted directly between your phone and PC. Not even our servers can read it.
-*   **Offline Cache**: Once synced, you don't need to open the Hub site anymore. Just click the extension icon to start pairing instantly using cached credentials.
+*   **Local Session Cache**: Once synced, the extension can keep operating from its locally stored room credentials until the room is reset or expires.
 
 ---
 
 ## 6. Troubleshooting
 
-*   **No QR Code**: Try refreshing [VoiceMux Hub](https://hub.knc.jp) and then click the extension icon again.
+*   **Popup still says "Connect Phone"**: Open [pair.knc.jp/hub](https://pair.knc.jp/hub) or [VoiceMux Hub](https://hub.knc.jp) again so the current room can sync into the extension.
 *   **Text Not Appearing**: Make sure you've clicked inside a text field on your PC and that the cursor is active.
 
 ---

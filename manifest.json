@@ -1,7 +1,8 @@
 {
   "manifest_version": 3,
   "name": "__MSG_name__",
-  "version": "2.56.58.22",
+  "version": "2.2.0",
+  "version_name": "2.2.0 (build 2.56.58.24)",
   "description": "__MSG_description__",
   "default_locale": "en",
   "permissions": [
@@ -12,7 +13,8 @@
   "host_permissions": [
     "http://localhost:4000/*",
     "https://v.knc.jp/*",
-    "https://hub.knc.jp/*"
+    "https://hub.knc.jp/*",
+    "https://pair.knc.jp/*"
   ],
   "action": {
     "default_popup": "popup.html",
@@ -23,6 +25,7 @@
   "externally_connectable": {
     "matches": [
       "https://hub.knc.jp/*",
+      "https://pair.knc.jp/*",
       "http://localhost/*"
     ]
   },
