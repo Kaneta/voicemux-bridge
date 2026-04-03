@@ -41,7 +41,7 @@ If we restricted permissions to "activeTab" (only when clicked), **you would hav
 We understand that "All Site Access" is a powerful permission. We balance this responsibility with the following transparency measures:
 
 - **Open Source Client:** The Chrome extension source is public. Anyone can inspect how room auth is stored, how relay traffic is decrypted, and how text is injected into the active page.
-- **Trusted First-Party Sync Only:** The extension accepts `SYNC_AUTH` only from trusted first-party origins declared in `manifest.json`, currently including `hub.knc.jp` and `pair.knc.jp`.
+- **Trusted First-Party Sync Only:** The extension accepts `SYNC_AUTH` only from trusted first-party origins declared in `manifest.json`, with production pairing on `pair.knc.jp` and review/polish flows on `hub.knc.jp`.
 - **End-to-End Encryption (E2EE):** The relay only transports encrypted payloads. Decryption happens locally inside the extension background worker, not on the server.
 - **Zero-Knowledge Key Exchange:** The encryption key reaches the mobile device via URL hash fragments (`#key=...`), which are not sent to the server.
 - **On-Device Local Storage:** Room credentials, settings, and adapters are stored in `chrome.storage.local`, which is local storage inside this device's Chrome profile. We do not run remote code or browser-history analytics from the extension.

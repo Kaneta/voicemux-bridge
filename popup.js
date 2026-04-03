@@ -9,68 +9,49 @@ document.addEventListener("DOMContentLoaded", async () => {
   const primaryAction = document.getElementById("primary-action");
   const primaryActionSkeleton = document.getElementById("primary-action-skeleton");
   const primaryNote = document.getElementById("primary-note");
-  const btnResetGlobal = document.getElementById("btn-global-reset");
 
   const MIN_LOADING_MS = 400;
   const MAX_AUTH_WAIT_MS = 2000;
   const loadStartedAt = Date.now();
   let hasResolvedInitialState = false;
   let maxWaitTimer = null;
+  let prewarmRequested = false;
 
   if (versionDisplay) {
-    versionDisplay.innerText = `v${chrome.runtime.getManifest().version}`;
+    versionDisplay.innerText = `v${getPublicVersion(chrome.runtime.getManifest())}`;
   }
 
-  try {
-    const statusRes = await fetch("https://v.knc.jp/api/status");
-    if (statusRes.ok) {
-      const status = await statusRes.json();
-      if (status.is_maintenance) {
-        const notice = document.getElementById("maintenance-notice");
-        const link = document.getElementById("maintenance-link");
-        if (notice && link) {
-          notice.style.display = "block";
-          link.href = status.info_url;
-        }
+  void fetch("https://v.knc.jp/api/status")
+    .then((statusRes) => {
+      if (!statusRes.ok) {
+        return null;
       }
-    }
-  } catch (e) {
-    console.warn("VoiceMux: Failed to fetch system status.", e);
-  }
-
-  const handleReset = async () => {
-    if (!confirm(chrome.i18n.getMessage("confirm_reset") || "Reset room?")) {
-      return;
-    }
-
-    await chrome.runtime.sendMessage({ action: "RESET_ROOM" }).catch(() => {
-      return chrome.storage.local.remove([
-        "voicemux_room_id",
-        "voicemux_token",
-        "voicemux_key",
-        "voicemux_paired",
-        "voicemux_pairing_code",
-        "voicemux_mobile_connected"
-      ]);
+      return statusRes.json();
+    })
+    .then((status) => {
+      if (!status?.is_maintenance) {
+        return;
+      }
+      const notice = document.getElementById("maintenance-notice");
+      const link = document.getElementById("maintenance-link");
+      if (notice && link) {
+        notice.style.display = "block";
+        link.href = status.info_url;
+      }
+    })
+    .catch((e) => {
+      console.warn("VoiceMux: Failed to fetch system status.", e);
     });
 
-    renderLoading();
-    hasResolvedInitialState = true;
-    void updateUI({ forceResolve: true });
-  };
-
-  if (btnResetGlobal) {
-    btnResetGlobal.onclick = handleReset;
-  }
-
-  function setButton(action) {
+  function setButton(action, options = {}) {
+    const showSkeleton = !!options.showSkeleton;
     if (!primaryAction || !primaryActionSkeleton) {
       return;
     }
 
     if (!action) {
       primaryAction.classList.add("is-hidden");
-      primaryActionSkeleton.classList.remove("is-hidden");
+      primaryActionSkeleton.classList.toggle("is-hidden", !showSkeleton);
       primaryAction.onclick = null;
       return;
     }
@@ -95,13 +76,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       primaryNote.textContent = "";
       primaryNote.classList.add("is-hidden");
     }
-    if (btnResetGlobal) {
-      btnResetGlobal.classList.add("is-hidden");
-    }
-    setButton(null);
+    setButton(null, { showSkeleton: true });
   }
 
-  function renderState({ title, copy, button, note, showReset }) {
+  function renderState({ title, copy, button, note }) {
     contentView?.classList.remove("is-loading");
     contentView?.classList.toggle("is-action-only", !title && !copy && !note);
 
@@ -124,36 +102,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         primaryNote.classList.add("is-hidden");
       }
     }
-
-    if (btnResetGlobal) {
-      btnResetGlobal.classList.toggle("is-hidden", !showReset);
-    }
-  }
-
-  /**
-   * [Intent: Resolve Product-Neutral Pairing Surface]
-   * Decoupled from VoiceMuxHub to support multiple target apps.
-   */
-  async function resolvePairOrigin() {
-    const data = await chrome.storage.local.get(["voicemux_pair_url"]);
-    try {
-      return new URL(data.voicemux_pair_url || "https://pair.knc.jp").origin;
-    } catch {
-      return "https://pair.knc.jp";
-    }
-  }
-
-  /**
-   * [Intent: Resolve Static Work Surface]
-   * Currently VoiceMuxHub remains the primary librarian/editor.
-   */
-  async function resolveHubOrigin() {
-    const data = await chrome.storage.local.get(["voicemux_hub_url"]);
-    try {
-      return new URL(data.voicemux_hub_url || "https://hub.knc.jp").origin;
-    } catch {
-      return "https://hub.knc.jp";
-    }
   }
 
   async function updateUI(options = {}) {
@@ -162,13 +110,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       "voicemux_room_id",
       "voicemux_token",
       "voicemux_key",
-      "voicemux_hub_url",
       "voicemux_mobile_connected"
     ]);
 
     const roomId = data.voicemux_room_id;
     const token = data.voicemux_token;
     const keyBase64 = data.voicemux_key;
+    const isMobileConnected = !!data.voicemux_mobile_connected;
     const hasAuth = !!(roomId && token && keyBase64);
 
     if (!hasResolvedInitialState && !hasAuth && !forceResolve) {
@@ -192,40 +140,53 @@ document.addEventListener("DOMContentLoaded", async () => {
       maxWaitTimer = null;
     }
 
-    const hubOrigin = await resolveHubOrigin();
-    const pairOrigin = await resolvePairOrigin();
+    const openPairSurface = async () => {
+      try {
+        await chrome.runtime.sendMessage({ action: "OPEN_PAIR_SURFACE" });
+      } catch {
+        /* launcher failure stays silent in popup */
+      }
+    };
+
+    const connectAction = {
+      label: t("btn_open_pair_surface") || "Connect Phone",
+      onClick: openPairSurface
+    };
+
+    const showQrAction = {
+      label: t("btn_show_qr") || "Review phone connection",
+      onClick: openPairSurface
+    };
 
     if (hasAuth) {
       renderState({
         title:
           t("mobile_ready_title") ||
-          "You can input text into websites on this PC from your smartphone.",
-        copy:
-          t("mobile_ready_copy") ||
-          "You can close this popup and keep using voice input. Open VoiceMuxHub only when you want to confirm the link, review text, or polish the result.",
-        button: {
-          label: t("btn_manage_librarian") || "Open VoiceMuxHub",
-          onClick: () => {
-            chrome.tabs.create({ url: `${hubOrigin}/review/${roomId}` });
-          }
-        },
-        note: "",
-        showReset: true
+          "Use phone input on this PC",
+        copy: t("mobile_ready_copy"),
+        button: showQrAction,
+        note:
+          (isMobileConnected
+            ? t("mobile_connected_note")
+            : t("mobile_connecting_note")) || ""
       });
       return;
     }
 
+    if (!prewarmRequested) {
+      prewarmRequested = true;
+      chrome.runtime.sendMessage({ action: "PREWARM_PAIR_AUTH" }).catch(() => {
+        /* best-effort prewarm */
+      });
+    }
+
     renderState({
-      title: "",
+      title:
+        t("mobile_ready_title") ||
+        "Use phone input on this PC",
       copy: "",
-      button: {
-        label: t("btn_open_pair_surface") || "Connect Phone",
-        onClick: () => {
-          chrome.tabs.create({ url: `${pairOrigin}/hub` });
-        }
-      },
+      button: connectAction,
       note: "",
-      showReset: false
     });
   }
 
@@ -250,6 +211,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 });
+
+function getPublicVersion(manifest) {
+  const publicVersion = manifest?.version?.trim();
+  if (publicVersion) {
+    return publicVersion;
+  }
+
+  const versionName = manifest?.version_name?.trim();
+  if (!versionName) {
+    return "unknown";
+  }
+
+  return versionName.split("(")[0].trim() || versionName;
+}
 
 function localize() {
   document.querySelectorAll("[data-i18n]").forEach((element) => {

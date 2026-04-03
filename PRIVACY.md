@@ -23,7 +23,6 @@ Room text sent from the mobile device to the extension is encrypted with client-
 The extension requires the following permissions to function:
 - **activeTab**: Used to identify and interact with the currently active page when the paired room sends an explicit command.
 - **storage**: Used to store room credentials, local settings, and custom adapters.
-- **alarms**: Used to keep the Manifest V3 background worker healthy enough to maintain relay connectivity.
 
 The extension also declares host permissions for the VoiceMux first-party origins used for relay status, pairing, and review/polish handoff.
 

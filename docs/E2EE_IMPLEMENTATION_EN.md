@@ -13,6 +13,7 @@ The public part you can audit in this repository is the allowlist in [`manifest.
   "matches": [
     "https://hub.knc.jp/*",
     "https://pair.knc.jp/*",
+    "https://staging-pair.knc.jp/*",
     "http://localhost/*"
   ]
 }

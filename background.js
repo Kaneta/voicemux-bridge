@@ -13,6 +13,33 @@ const MAX_RETRY_DELAY = 30000;
 const MAX_FAILED_CONNECTS_WITHOUT_JOIN = 2;
 const DEBUG_LOG_KEY = "voicemux_debug_events";
 const DEBUG_LOG_LIMIT = 50;
+const PREWARM_TTL_MS = 2 * 60 * 1000;
+const ACTIVE_AUTH_STORAGE_KEYS = ["voicemux_token", "voicemux_room_id", "voicemux_key"];
+const PREWARM_STORAGE_KEYS = [
+	"voicemux_prewarm_uuid",
+	"voicemux_prewarm_token",
+	"voicemux_prewarm_key",
+	"voicemux_prewarm_created_at"
+];
+const AUTH_RESET_STORAGE_KEYS = [
+	"voicemux_token",
+	"voicemux_room_id",
+	"voicemux_key",
+	"voicemux_pair_origin",
+	"voicemux_prewarm_uuid",
+	"voicemux_prewarm_token",
+	"voicemux_prewarm_key",
+	"voicemux_prewarm_created_at",
+	"voicemux_paired",
+	"voicemux_pairing_code",
+	"voicemux_mobile_connected"
+];
+const ACTIVE_AUTH_WITH_ORIGIN_KEYS = [
+	"voicemux_token",
+	"voicemux_room_id",
+	"voicemux_key",
+	"voicemux_pair_origin"
+];
 
 let socket = null;
 let heartbeatInterval = null;
@@ -23,8 +50,208 @@ let isJoined = false;
 let failedConnectsWithoutJoin = 0;
 let isPurgingAuth = false;
 let preferredTabId = null;
+let prewarmPromise = null;
 const JOIN_REF = "1";
 const remoteDevices = new Map();
+
+async function getPairOrigin() {
+  const data = await chrome.storage.local.get(["voicemux_pair_url"]);
+  try {
+    return new URL(data.voicemux_pair_url || "https://pair.knc.jp").origin;
+	} catch {
+		return "https://pair.knc.jp";
+  }
+}
+
+function getOriginFromUrl(input) {
+  if (typeof input !== "string" || input.length === 0) {
+    return null;
+  }
+  try {
+    return new URL(input).origin;
+  } catch {
+    return null;
+  }
+}
+
+function queryTabs(queryInfo) {
+	return new Promise((resolve) => {
+		chrome.tabs.query(queryInfo, (tabs) => {
+			resolve(tabs || []);
+		});
+	});
+}
+
+function createTab(createProperties) {
+	return new Promise((resolve) => {
+		chrome.tabs.create(createProperties, (tab) => {
+			resolve(tab || null);
+		});
+	});
+}
+
+function updateTab(tabId, updateProperties) {
+	return new Promise((resolve) => {
+		chrome.tabs.update(tabId, updateProperties, (tab) => {
+			resolve(tab || null);
+		});
+	});
+}
+
+function focusWindow(windowId) {
+	return new Promise((resolve) => {
+		if (!Number.isInteger(windowId)) {
+			resolve(null);
+			return;
+		}
+		chrome.windows.update(windowId, { focused: true }, (windowRef) => {
+			resolve(windowRef || null);
+		});
+	});
+}
+
+async function openOrFocusPairSurface() {
+	const pairOrigin = await getPairOrigin();
+	const targetUrl = `${pairOrigin}/chrome`;
+	const tabs = await queryTabs({ url: `${pairOrigin}/chrome*` });
+	const existingTab = tabs.find((tab) => {
+		return typeof tab.url === "string" && tab.url.startsWith(targetUrl);
+	});
+
+	if (existingTab?.id) {
+		await updateTab(existingTab.id, { active: true });
+		await focusWindow(existingTab.windowId);
+		appendDebugEvent("open_pair_surface.focus_existing", {
+			tabId: existingTab.id,
+			url: existingTab.url || targetUrl
+		});
+		return { action: "focused_existing", tabId: existingTab.id, url: existingTab.url || targetUrl };
+	}
+
+	const createdTab = await createTab({ url: targetUrl });
+	appendDebugEvent("open_pair_surface.create_new", {
+		tabId: createdTab?.id || null,
+		url: targetUrl
+	});
+	return { action: "created_new", tabId: createdTab?.id || null, url: targetUrl };
+}
+
+function generateEncryptionKey() {
+	const array = new Uint8Array(32);
+	crypto.getRandomValues(array);
+	return btoa(String.fromCharCode(...array))
+		.replace(/\+/g, "-")
+		.replace(/\//g, "_")
+		.replace(/=/g, "");
+}
+
+async function issueFreshSession() {
+	const res = await fetch("https://v.knc.jp/api/auth/issue", {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({})
+	});
+
+	if (!res.ok) {
+		throw new Error(`issue_failed_${res.status}`);
+	}
+
+	const data = await res.json();
+	return {
+		uuid: data.room || data.uuid || null,
+		token: data.token || null
+	};
+}
+
+function getPrewarmStorage() {
+	return chrome.storage.local.get(PREWARM_STORAGE_KEYS);
+}
+
+function clearPrewarmStorage() {
+	return chrome.storage.local.remove(PREWARM_STORAGE_KEYS);
+}
+
+async function readFreshPrewarm() {
+	const data = await getPrewarmStorage();
+	const createdAt = Number(data.voicemux_prewarm_created_at || 0);
+	const isFresh = createdAt > 0 && Date.now() - createdAt < PREWARM_TTL_MS;
+	if (!isFresh) {
+		await clearPrewarmStorage();
+		return null;
+	}
+	if (!data.voicemux_prewarm_uuid || !data.voicemux_prewarm_token || !data.voicemux_prewarm_key) {
+		await clearPrewarmStorage();
+		return null;
+	}
+	return {
+		uuid: data.voicemux_prewarm_uuid,
+		token: data.voicemux_prewarm_token,
+		key: data.voicemux_prewarm_key
+	};
+}
+
+async function ensurePrewarmedPairAuth() {
+	if (prewarmPromise) {
+		return prewarmPromise;
+	}
+
+	prewarmPromise = (async () => {
+		const active = await chrome.storage.local.get(["voicemux_room_id", "voicemux_token", "voicemux_key"]);
+		if (active.voicemux_room_id && active.voicemux_token && active.voicemux_key) {
+			return null;
+		}
+
+		const existing = await readFreshPrewarm();
+		if (existing) {
+			appendDebugEvent("prewarm_reuse", { uuid: existing.uuid });
+			return existing;
+		}
+
+		const room = await issueFreshSession();
+		if (!room.uuid || !room.token) {
+			throw new Error("invalid_prewarm_issue_response");
+		}
+
+		const key = generateEncryptionKey();
+		const payload = {
+			voicemux_prewarm_uuid: room.uuid,
+			voicemux_prewarm_token: room.token,
+			voicemux_prewarm_key: key,
+			voicemux_prewarm_created_at: Date.now()
+		};
+		await chrome.storage.local.set(payload);
+		appendDebugEvent("prewarm_created", { uuid: room.uuid });
+		return { uuid: room.uuid, token: room.token, key };
+	})()
+		.catch((error) => {
+			appendDebugEvent("prewarm_failed", {
+				message: error instanceof Error ? error.message : String(error)
+			});
+			return null;
+		})
+		.finally(() => {
+			prewarmPromise = null;
+		});
+
+	return prewarmPromise;
+}
+
+function getPresenceRole(payload) {
+	if (!payload || typeof payload !== "object") {
+		return null;
+	}
+	if (typeof payload.role === "string" && payload.role.length > 0) {
+		return payload.role;
+	}
+	if (payload.sender_tab_id === "extension") {
+		return "extension";
+	}
+	return null;
+}
+
+function isMobilePresence(payload) {
+	return getPresenceRole(payload) === "mobile";
+}
 
 function appendDebugEvent(event, detail = {}) {
 	const entry = {
@@ -107,6 +334,88 @@ function safeSend(message) {
 	return false;
 }
 
+function stopRelayTimers() {
+	if (retryTimer) {
+		clearTimeout(retryTimer);
+		retryTimer = null;
+	}
+	if (heartbeatInterval) {
+		clearInterval(heartbeatInterval);
+		heartbeatInterval = null;
+	}
+}
+
+function closeSocketQuietly(activeSocket) {
+	if (!activeSocket) {
+		return;
+	}
+	try {
+		activeSocket.close();
+	} catch {
+		// best-effort cleanup
+	}
+}
+
+function resetRelayConnectionState() {
+	socket = null;
+	currentRoomId = null;
+	isJoined = false;
+	failedConnectsWithoutJoin = 0;
+	remoteDevices.clear();
+	syncDevicePresence();
+}
+
+async function readActiveAuthSnapshot() {
+	return chrome.storage.local.get(ACTIVE_AUTH_STORAGE_KEYS);
+}
+
+function removeAuthStorage(callback) {
+	chrome.storage.local.remove(AUTH_RESET_STORAGE_KEYS, callback);
+}
+
+function setStoredAuthSnapshot(args, callback) {
+	chrome.storage.local.set(
+		{
+			voicemux_token: args.token,
+			voicemux_room_id: args.uuid,
+			voicemux_key: args.key,
+			voicemux_mobile_connected: false,
+			voicemux_hub_url: args.hubUrl,
+			voicemux_pair_origin: args.pairOrigin
+		},
+		callback
+	);
+}
+
+function readScopedAuthForSender(senderUrl, sendResponse) {
+	appendDebugEvent("get_auth");
+	chrome.storage.local.get(ACTIVE_AUTH_WITH_ORIGIN_KEYS, (data) => {
+		const senderOrigin = getOriginFromUrl(senderUrl);
+		const storedPairOrigin = getOriginFromUrl(data.voicemux_pair_origin);
+		const hasOriginMismatch =
+			!!senderOrigin && !!storedPairOrigin && senderOrigin !== storedPairOrigin;
+
+		if (typeof sendResponse !== "function") {
+			return;
+		}
+
+		if (hasOriginMismatch) {
+			appendDebugEvent("get_auth_origin_mismatch", {
+				senderOrigin,
+				storedPairOrigin
+			});
+			sendResponse({});
+			return;
+		}
+
+		sendResponse({
+			token: data.voicemux_token,
+			uuid: data.voicemux_room_id,
+			key: data.voicemux_key
+		});
+	});
+}
+
 function syncDevicePresence() {
 	let mobileCount = 0;
 	remoteDevices.forEach((type) => {
@@ -127,44 +436,16 @@ function purgeStoredAuth(reason) {
 	appendDebugEvent("purge_auth", { reason, roomId: currentRoomId });
 	console.warn("VoiceMux: Purging stale auth from extension.", { reason, roomId: currentRoomId });
 
-	if (retryTimer) {
-		clearTimeout(retryTimer);
-		retryTimer = null;
-	}
-	if (heartbeatInterval) {
-		clearInterval(heartbeatInterval);
-		heartbeatInterval = null;
-	}
+	stopRelayTimers();
 
 	const activeSocket = socket;
-	socket = null;
-	currentRoomId = null;
-	isJoined = false;
-	failedConnectsWithoutJoin = 0;
-	remoteDevices.clear();
-	syncDevicePresence();
+	resetRelayConnectionState();
 
-	chrome.storage.local.remove(
-		[
-			"voicemux_token",
-			"voicemux_room_id",
-			"voicemux_key",
-			"voicemux_paired",
-			"voicemux_pairing_code",
-			"voicemux_mobile_connected"
-		],
-		() => {
-			isPurgingAuth = false;
-		}
-	);
+	removeAuthStorage(() => {
+		isPurgingAuth = false;
+	});
 
-	if (activeSocket) {
-		try {
-			activeSocket.close();
-		} catch {
-			// best-effort cleanup
-		}
-	}
+	closeSocketQuietly(activeSocket);
 }
 
 /**
@@ -175,6 +456,7 @@ function notifyActiveTab(payload, eventName) {
 	const dispatchToTab = (activeTab) => {
 		if (activeTab) {
 			const isActionablePayload = !!(payload?.action || payload?.command);
+			const shouldMirrorToContentLog = isActionablePayload || eventName === "phx_error";
 			appendDebugEvent("notifyActiveTab", {
 				eventName,
 				action: payload?.action || null,
@@ -191,15 +473,18 @@ function notifyActiveTab(payload, eventName) {
 				tabId: activeTab.id,
 				url: activeTab.url
 			});
-			// 1. Always send a log for visibility
-			chrome.tabs
-				.sendMessage(activeTab.id, {
-					action: "LOG",
-					message: `📡 [${eventName}] | Sender: ${payload?.sender_tab_id || "system"}`
-				})
-				.catch(() => {
-					/* silent */
-				});
+			// 1. Mirror only actionable/error events into content logs.
+			// Presence chatter like device_online should stay in background debug logs.
+			if (shouldMirrorToContentLog) {
+				chrome.tabs
+					.sendMessage(activeTab.id, {
+						action: "LOG",
+						message: `📡 [${eventName}] | Sender: ${payload?.sender_tab_id || "system"}`
+					})
+					.catch(() => {
+						/* silent */
+					});
+			}
 
 			// 2. Dispatch only actionable commands.
 			// Presence/status events are useful for debugging but should not reach
@@ -273,11 +558,19 @@ async function handleOpenEditor(roomId) {
 
 async function connect() {
 	if (socket && (socket.readyState === WebSocket.CONNECTING || socket.readyState === WebSocket.OPEN)) {
+		appendDebugEvent("connect_skip_existing_socket", {
+			readyState: socket.readyState,
+			roomId: currentRoomId
+		});
 		return;
 	}
 
-	const data = await chrome.storage.local.get(["voicemux_token", "voicemux_room_id"]);
+	const data = await readActiveAuthSnapshot();
 	if (!data.voicemux_token || !data.voicemux_room_id) {
+		appendDebugEvent("connect_skip_missing_auth", {
+			hasToken: !!data.voicemux_token,
+			hasRoomId: !!data.voicemux_room_id
+		});
 		return;
 	}
 
@@ -285,9 +578,22 @@ async function connect() {
 	remoteDevices.clear();
 	syncDevicePresence();
 	const topic = `room:${currentRoomId}`;
-	socket = new WebSocket(`${BASE_WS_URL}?vsn=2.0.0&token=${data.voicemux_token}`);
+	appendDebugEvent("connect_start", {
+		roomId: currentRoomId,
+		retryDelay,
+		failedConnectsWithoutJoin
+	});
+	console.log("VoiceMux: connect_start", {
+		roomId: currentRoomId,
+		retryDelay,
+		failedConnectsWithoutJoin
+	});
+	socket = new WebSocket(
+		`${BASE_WS_URL}?vsn=2.0.0&token=${encodeURIComponent(data.voicemux_token)}&room=${encodeURIComponent(currentRoomId)}`
+	);
 
 	socket.onopen = () => {
+		appendDebugEvent("socket_open", { roomId: currentRoomId });
 		console.log("VoiceMux: Socket established. Joining room...");
 		isJoined = false;
 		safeSend([JOIN_REF, JOIN_REF, topic, "phx_join", {}]);
@@ -325,19 +631,22 @@ async function connect() {
 			handleOpenEditor(currentRoomId);
 		}
 
-		if (eventName === "phx_reply" && payload?.status === "ok") {
+	if (eventName === "phx_reply" && payload?.status === "ok") {
+			appendDebugEvent("join_ok", {
+				roomId: currentRoomId,
+				ref: payload?.response?.ref || null
+			});
 			console.log("VoiceMux: Channel Joined Successfully.");
 			isJoined = true;
 			failedConnectsWithoutJoin = 0;
 			retryDelay = 1000;
 			syncDevicePresence();
-			safeSend([JOIN_REF, "2", topic, "device_online", { sender_tab_id: "extension" }]);
+			safeSend([JOIN_REF, "2", topic, "device_online", { sender_tab_id: "extension", role: "extension" }]);
 		} else if (eventName === "device_online" && payload.sender_tab_id !== "extension") {
 			if (isJoined) {
-				remoteDevices.set(payload.sender_tab_id, payload.device_type || "unknown");
+				remoteDevices.set(payload.sender_tab_id, getPresenceRole(payload) || "unknown");
 				syncDevicePresence();
 				chrome.storage.local.set({ voicemux_paired: true });
-				safeSend([JOIN_REF, "3", topic, "device_online", { sender_tab_id: "extension" }]);
 			}
 		} else if (eventName === "device_offline" && payload.sender_tab_id !== "extension") {
 			remoteDevices.delete(payload.sender_tab_id);
@@ -345,13 +654,40 @@ async function connect() {
 		}
 	};
 
-	socket.onclose = () => {
+	socket.onclose = async (event) => {
+		appendDebugEvent("socket_close", {
+			roomId: currentRoomId,
+			code: event.code,
+			wasClean: event.wasClean,
+			reason: event.reason || null,
+			isPurgingAuth,
+			isJoined,
+			failedConnectsWithoutJoin
+		});
+		console.log("VoiceMux: socket_close", {
+			roomId: currentRoomId,
+			code: event.code,
+			wasClean: event.wasClean,
+			reason: event.reason || null,
+			isPurgingAuth,
+			isJoined,
+			failedConnectsWithoutJoin
+		});
 		if (isPurgingAuth) {
 			return;
 		}
 		isJoined = false;
 		remoteDevices.clear();
 		syncDevicePresence();
+		if (!(await hasActiveAuth())) {
+			appendDebugEvent("socket_close_skip_reconnect_no_auth", {
+				roomId: currentRoomId
+			});
+			console.log("VoiceMux: socket_close_skip_reconnect_no_auth", {
+				roomId: currentRoomId
+			});
+			return;
+		}
 		failedConnectsWithoutJoin += 1;
 		if (failedConnectsWithoutJoin >= MAX_FAILED_CONNECTS_WITHOUT_JOIN) {
 			purgeStoredAuth("socket_failed_before_join");
@@ -359,10 +695,15 @@ async function connect() {
 		}
 		scheduleReconnect();
 	};
-	socket.onerror = () => {
+	socket.onerror = (event) => {
 		appendDebugEvent("socket_error", {
 			roomId: currentRoomId,
 			failedConnectsWithoutJoin
+		});
+		console.warn("VoiceMux: socket_error", {
+			roomId: currentRoomId,
+			failedConnectsWithoutJoin,
+			type: event?.type || null
 		});
 		socket.close();
 	};
@@ -372,10 +713,23 @@ function scheduleReconnect() {
 	if (retryTimer) {
 		clearTimeout(retryTimer);
 	}
+	appendDebugEvent("schedule_reconnect", {
+		roomId: currentRoomId,
+		retryDelay
+	});
+	console.log("VoiceMux: schedule_reconnect", {
+		roomId: currentRoomId,
+		retryDelay
+	});
 	retryTimer = setTimeout(() => {
 		connect();
 	}, retryDelay);
 	retryDelay = Math.min(retryDelay * 2, MAX_RETRY_DELAY);
+}
+
+async function hasActiveAuth() {
+	const data = await readActiveAuthSnapshot();
+	return !!(data.voicemux_token && data.voicemux_room_id);
 }
 
 function handleSyncAuth(request, sender, sendResponse) {
@@ -396,26 +750,27 @@ function handleSyncAuth(request, sender, sendResponse) {
 	if (request.action === "SYNC_AUTH") {
 		const data = request.payload || request;
 		const cleanKey = (data.key || "").replace(/ /g, "+");
+		const pairOrigin = getOriginFromUrl(sender?.url);
 		remoteDevices.clear();
 		appendDebugEvent("sync_auth", {
 			uuid: data.uuid || null,
 			hasToken: !!data.token,
 			hasKey: !!cleanKey,
-			hubUrl: data.hub_url || sender.url || null
+			hubUrl: data.hub_url || sender.url || null,
+			pairOrigin
 		});
-		chrome.storage.local.set(
+		setStoredAuthSnapshot(
 			{
-				voicemux_token: data.token,
-				voicemux_room_id: data.uuid,
-				voicemux_key: cleanKey,
-				voicemux_mobile_connected: false,
-				voicemux_hub_url: data.hub_url || sender.url // Prefer explicit target surface over sender origin
+				uuid: data.uuid,
+				token: data.token,
+				key: cleanKey,
+				hubUrl: data.hub_url || sender.url,
+				pairOrigin
 			},
 			() => {
+				void clearPrewarmStorage();
 				failedConnectsWithoutJoin = 0;
-				if (socket) {
-					socket.close();
-				}
+				closeSocketQuietly(socket);
 				connect();
 				if (typeof sendResponse === "function") {
 					sendResponse({ success: true });
@@ -426,17 +781,8 @@ function handleSyncAuth(request, sender, sendResponse) {
 	}
 
 	if (request.action === "GET_AUTH") {
-		appendDebugEvent("get_auth");
 		// [Intent: Vault Access] Retrieve credentials from extension storage
-		chrome.storage.local.get(["voicemux_token", "voicemux_room_id", "voicemux_key"], (data) => {
-			if (typeof sendResponse === "function") {
-				sendResponse({
-					token: data.voicemux_token,
-					uuid: data.voicemux_room_id,
-					key: data.voicemux_key
-				});
-			}
-		});
+		readScopedAuthForSender(sender?.url, sendResponse);
 		return true;
 	}
 
@@ -444,30 +790,22 @@ function handleSyncAuth(request, sender, sendResponse) {
 		appendDebugEvent("clear_auth");
 		remoteDevices.clear();
 		// [Intent: Vault Purge] Explicitly remove all credentials on session reset
-		chrome.storage.local.remove(
-			[
-				"voicemux_token",
-				"voicemux_room_id",
-				"voicemux_key",
-				"voicemux_paired",
-				"voicemux_pairing_code",
-				"voicemux_mobile_connected"
-			],
-			() => {
-				console.log("VoiceMux: Auth cleared from extension.");
-				if (socket) {
-					socket.close();
-				}
-				if (typeof sendResponse === "function") {
-					sendResponse({ success: true });
-				}
+		removeAuthStorage(() => {
+			console.log("VoiceMux: Auth cleared from extension.");
+			closeSocketQuietly(socket);
+			if (typeof sendResponse === "function") {
+				sendResponse({ success: true });
 			}
-		);
+		});
 		return true;
 	}
 
 	if (request.action === "RESET_ROOM") {
 		appendDebugEvent("reset_room");
+		console.log("VoiceMux: reset_room", {
+			roomId: currentRoomId,
+			isJoined
+		});
 
 		const topic = currentRoomId ? `room:${currentRoomId}` : null;
 		if (topic && isJoined) {
@@ -479,7 +817,7 @@ function handleSyncAuth(request, sender, sendResponse) {
 				{
 					action: "RESET_ROOM",
 					sender_tab_id: "extension",
-					device_type: "extension"
+					role: "extension"
 				}
 			]);
 		}
@@ -489,6 +827,40 @@ function handleSyncAuth(request, sender, sendResponse) {
 		if (typeof sendResponse === "function") {
 			sendResponse({ success: true });
 		}
+		return true;
+	}
+
+	if (request.action === "PREWARM_PAIR_AUTH") {
+		ensurePrewarmedPairAuth().then((payload) => {
+			if (typeof sendResponse === "function") {
+				sendResponse(payload || { success: false });
+			}
+		});
+		return true;
+	}
+
+	if (request.action === "GET_PREWARM_PAIR_AUTH") {
+		readFreshPrewarm().then((payload) => {
+			if (typeof sendResponse === "function") {
+				sendResponse(payload || { success: false });
+			}
+		});
+		return true;
+	}
+
+	if (request.action === "OPEN_PAIR_SURFACE") {
+		openOrFocusPairSurface()
+			.then((payload) => {
+				if (typeof sendResponse === "function") {
+					sendResponse({ success: true, ...payload });
+				}
+			})
+			.catch((error) => {
+				console.warn("VoiceMux: Failed to open pair surface.", error);
+				if (typeof sendResponse === "function") {
+					sendResponse({ success: false });
+				}
+			});
 		return true;
 	}
 	return false;

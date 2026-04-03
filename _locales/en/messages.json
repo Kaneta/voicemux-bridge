@@ -3,7 +3,7 @@
     "message": "VoiceMux Bridge"
   },
   "description": {
-    "message": "VoiceMux Pairing with Direct Secure Push Sync and Custom Adapters"
+    "message": "Send recognized text from phone to PC browser. Text only, not audio. Fast, secure voice typing for ChatGPT, Gmail, and more."
   },
   "waiting_hub_main": {
     "message": "Connect your phone"
@@ -11,11 +11,8 @@
   "btn_open_pair_surface": {
     "message": "Connect Phone"
   },
-  "btn_manage_librarian": {
-    "message": "Open VoiceMuxHub"
-  },
-  "btn_reset_connection": {
-    "message": "Reset Room"
+  "btn_show_qr": {
+    "message": "Review phone connection"
   },
   "confirm_reset": {
     "message": "This will disconnect the PC and smartphone.\nDraft text being edited in this room will be cleared on both the PC and the smartphone.\nIf you need to keep the draft, copy it first and save it by pasting into Spool or another app."
@@ -33,25 +30,25 @@
     "message": "Privacy"
   },
   "mobile_ready_title": {
-    "message": "You can input text into websites on this PC from your smartphone."
+    "message": "Use phone input on this PC"
   },
   "mobile_ready_copy": {
-    "message": "You can close this popup and keep using it. Open VoiceMuxHub only when you want to polish the text."
-  },
-  "mobile_connected_note": {
     "message": ""
   },
+  "mobile_connected_note": {
+    "message": "If something goes wrong:\n• Reload that web page\n• Open the extension again\n• Scan the QR code again"
+  },
   "mobile_connecting_note": {
-    "message": "Phone presence is still being confirmed. If it already works, you can keep using voice input. Open VoiceMuxHub only when you want to polish the text."
+    "message": "Phone presence is still being confirmed. If it already works, you can keep using voice input."
   },
   "options_title": {
     "message": "VoiceMux Settings"
   },
   "options_header": {
-    "message": "Custom Site Adapters"
+    "message": "Site-Specific Settings"
   },
   "options_description": {
-    "message": "Define custom CSS selectors for your favorite sites. You can find pre-made configurations in our <a href=\"https://github.com/Kaneta/voicemux-bridge/blob/main/docs/community-adapters.md\" target=\"_blank\">Community Adapters Catalog</a>."
+    "message": "Save extra input settings for individual sites. You can find pre-made configurations in our <a href=\"https://github.com/Kaneta/voicemux-bridge/blob/main/docs/community-adapters.md\" target=\"_blank\">Site-Specific Settings Examples</a>."
   },
   "options_operator_header": {
     "message": "Operator Configuration"

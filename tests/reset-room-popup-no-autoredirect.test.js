@@ -76,7 +76,6 @@ function createPopupEnvironment() {
     "primary-action",
     "primary-action-skeleton",
     "primary-note",
-    "btn-global-reset",
     "guide-link",
     "maintenance-notice",
     "maintenance-link"
@@ -86,18 +85,12 @@ function createPopupEnvironment() {
   ids.forEach((id) => {
     return elementsById.set(id, new FakeElement({ id }));
   });
-  elementsById.get("btn-global-reset").tagName = "BUTTON";
   elementsById.get("primary-action").tagName = "BUTTON";
   elementsById.get("guide-link").tagName = "A";
   elementsById.get("maintenance-link").tagName = "A";
 
   const localized = [
     new FakeElement({ tagName: "H1", attributes: { "data-i18n": "name" } }),
-    new FakeElement({
-      id: "btn-global-reset",
-      tagName: "BUTTON",
-      attributes: { "data-i18n": "btn_reset_connection" }
-    }),
     new FakeElement({ tagName: "A", attributes: { "data-i18n": "link_support" } }),
     elementsById.get("guide-link"),
     new FakeElement({ tagName: "A", attributes: { "data-i18n": "link_privacy" } }),
@@ -129,7 +122,6 @@ function createPopupEnvironment() {
     voicemux_room_id: "room-1",
     voicemux_token: "token-1",
     voicemux_key: "key-1",
-    voicemux_hub_url: "https://hub.knc.jp",
     voicemux_pair_url: "https://pair.knc.jp",
     voicemux_mobile_connected: true,
     voicemux_paired: true,
@@ -137,6 +129,7 @@ function createPopupEnvironment() {
   };
 
   const tabCreateCalls = [];
+  const runtimeMessages = [];
   const storageListeners = [];
   const timers = [];
   let timerId = 1;
@@ -148,14 +141,12 @@ function createPopupEnvironment() {
     link_guide: "Guide",
     link_privacy: "Privacy",
     url_guide: "https://knc.jp/en/docs/voicemux-bridge/",
-    confirm_reset: "Reset room?",
-    mobile_ready_title: "You can input text into websites on this PC from your smartphone.",
-    mobile_ready_copy: "You can close this popup and keep using it. Open VoiceMuxHub only when you want to polish the text.",
-    mobile_connected_note: "",
-    mobile_connecting_note: "Phone presence is still being confirmed. If it already works, you can keep using voice input. Open VoiceMuxHub only when you want to polish the text.",
-    btn_manage_librarian: "Open VoiceMuxHub",
-    waiting_hub_main: "Connect your phone",
-    btn_open_pair_surface: "Connect Phone"
+    mobile_ready_title: "Use phone input on this PC",
+    mobile_ready_copy: "",
+    mobile_connected_note: "If something goes wrong:\n• Reload that web page\n• Open the extension again\n• Scan the QR code again",
+    mobile_connecting_note: "Phone presence is still being confirmed. If it already works, you can keep using voice input.",
+    btn_open_pair_surface: "Connect Phone",
+    btn_show_qr: "Review phone connection"
   };
 
   const chrome = {
@@ -166,9 +157,13 @@ function createPopupEnvironment() {
     },
     runtime: {
       getManifest() {
-        return { version: "2.2.0" };
+        return {
+          version: "2.2.0",
+          version_name: "2.2.0 (build 2.56.58.24)"
+        };
       },
       async sendMessage(payload) {
+        runtimeMessages.push(payload);
         if (payload.action !== "RESET_ROOM") {
           return { success: true };
         }
@@ -268,6 +263,9 @@ function createPopupEnvironment() {
     getTabCreateCalls() {
       return tabCreateCalls;
     },
+    getRuntimeMessages() {
+      return runtimeMessages;
+    },
     async flushTimers() {
       // Loop until no more timers are left, as timers might schedule other timers
       while (timers.length > 0) {
@@ -294,8 +292,14 @@ function createPopupEnvironment() {
   };
 }
 
-test("reset room returns popup to disconnected state without auto-opening /pair", async () => {
+test("disconnected popup stays idle until the user opens pair surface", async () => {
   const env = createPopupEnvironment();
+  env.setStorage({
+    voicemux_room_id: null,
+    voicemux_token: null,
+    voicemux_key: null,
+    voicemux_pair_url: "https://pair.knc.jp"
+  });
   const source = fs.readFileSync(
     path.join(REPO_ROOT, "popup.js"),
     "utf8"
@@ -310,21 +314,19 @@ test("reset room returns popup to disconnected state without auto-opening /pair"
   await env.flushTimers();
   await env.settle();
 
-  const resetButton = env.elementsById.get("btn-global-reset");
-  const primaryAction = env.elementsById.get("primary-action");
   const title = env.elementsById.get("content-title");
+  const versionDisplay = env.elementsById.get("version-display");
 
-  assert.equal(typeof resetButton.onclick, "function");
   assert.equal(env.getTabCreateCalls().length, 0);
-
-  await resetButton.onclick();
-  await env.settle();
-  await env.flushTimers();
-  await env.settle();
-
-  assert.equal(title.textContent, "");
-  assert.equal(primaryAction.textContent, "Connect Phone");
-  assert.deepEqual(env.getTabCreateCalls(), [], "popup must not auto-open /pair after Reset Room");
+  assert.equal(versionDisplay.innerText, "v2.2.0");
+  assert.equal(title.textContent, "Use phone input on this PC");
+  assert.deepEqual(env.getTabCreateCalls(), [], "popup must not auto-open /pair");
+  assert.deepEqual(
+    env.getRuntimeMessages().map((message) => {
+      return message.action;
+    }),
+    ["PREWARM_PAIR_AUTH"]
+  );
 });
 
 test("popup keeps a single auth-ready state while mobile presence is still being confirmed", async () => {
@@ -333,7 +335,6 @@ test("popup keeps a single auth-ready state while mobile presence is still being
     voicemux_room_id: "room-1",
     voicemux_token: "token-1",
     voicemux_key: "key-1",
-    voicemux_hub_url: "https://hub.knc.jp",
     voicemux_mobile_connected: false
   });
 
@@ -355,16 +356,15 @@ test("popup keeps a single auth-ready state while mobile presence is still being
   const contentTitle = env.elementsById.get("content-title");
   const contentCopy = env.elementsById.get("content-copy");
   const primaryNote = env.elementsById.get("primary-note");
-  const resetButton = env.elementsById.get("btn-global-reset");
 
-  assert.equal(contentTitle.textContent, "You can input text into websites on this PC from your smartphone.");
+  assert.equal(contentTitle.textContent, "Use phone input on this PC");
+  assert.equal(contentCopy.textContent, "");
+  assert.equal(primaryAction.classList.contains("is-hidden"), false);
+  assert.equal(primaryAction.textContent, "Review phone connection");
   assert.equal(
-    contentCopy.textContent,
-    "You can close this popup and keep using it. Open VoiceMuxHub only when you want to polish the text."
+    primaryNote.textContent,
+    "Phone presence is still being confirmed. If it already works, you can keep using voice input."
   );
-  assert.equal(primaryAction.textContent, "Open VoiceMuxHub");
-  assert.equal(primaryNote.textContent, "");
-  assert.equal(resetButton.classList.contains("is-hidden"), false);
 });
 
 test("disconnected popup opens standalone pair surface", async () => {
@@ -393,5 +393,11 @@ test("disconnected popup opens standalone pair surface", async () => {
   assert.equal(primaryAction.textContent, "Connect Phone");
 
   await primaryAction.onclick();
-  assert.deepEqual(env.getTabCreateCalls(), ["https://pair.knc.jp/hub"]);
+  assert.deepEqual(
+    env.getRuntimeMessages().map((message) => {
+      return message.action;
+    }),
+    ["PREWARM_PAIR_AUTH", "OPEN_PAIR_SURFACE"]
+  );
+  assert.deepEqual(env.getTabCreateCalls(), []);
 });

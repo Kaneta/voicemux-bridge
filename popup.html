@@ -214,26 +214,9 @@
       color: var(--muted-soft);
       font-size: 12px;
       line-height: 1.5;
-      text-align: center;
+      text-align: left;
       text-wrap: pretty;
-    }
-
-    .footer-actions {
-      display: flex;
-      justify-content: center;
-      margin-top: 18px;
-      padding-top: 14px;
-      border-top: 1px solid rgba(17, 24, 39, 0.08);
-    }
-
-    .btn-reset {
-      border: none;
-      background: none;
-      color: var(--danger);
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-      padding: 0;
+      white-space: pre-line;
     }
 
     .footer-links {
@@ -251,8 +234,7 @@
       text-decoration: none;
     }
 
-    .f-link:hover,
-    .btn-reset:hover {
+    .f-link:hover {
       text-decoration: underline;
     }
 
@@ -297,10 +279,6 @@
         <div id="primary-action-skeleton" class="btn-primary-skeleton" aria-hidden="true">Loading...</div>
         <p id="primary-note" class="support-copy">&nbsp;</p>
       </div>
-    </div>
-
-    <div class="footer-actions">
-      <button id="btn-global-reset" class="btn-reset is-hidden" data-i18n="btn_reset_connection">Reset Room</button>
     </div>
 
     <div class="footer-links">

@@ -1,6 +1,6 @@
 # VoiceMux Community Adapters Catalog 📂
 
-Copy the JSON snippets below and paste them into the **Custom Site Adapters** field in your VoiceMux Extension Options.
+Copy the JSON snippets below and paste them into the **Site-Specific Settings** field in your VoiceMux Bridge Options.
 
 ---
 

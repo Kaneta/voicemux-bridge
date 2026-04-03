@@ -11,7 +11,7 @@ VoiceMux Bridge（ボイスムクス・ブリッジ）へようこそ！
 
 まず、拡張機能を使える状態にします。
 
-1.  パソコンで [pair.knc.jp/hub](https://pair.knc.jp/hub) または [VoiceMux Hub](https://hub.knc.jp) を開きます。
+1.  パソコンで [pair.knc.jp/chrome](https://pair.knc.jp/chrome) を開きます。
 2.  ファーストパーティの pairing surface が開くと、現在の room 情報がこの拡張機能へ自動同期されます。
 3.  ブラウザ右上の **VoiceMuxアイコン（マイクスタンドのマーク）** をクリックしてください。
 4.  popup に **「スマホを接続」** または、すでに同期済みなら **「このPC上のWeb入力欄へ、スマホから音声入力できます」** と表示されていれば準備OKです。
@@ -58,7 +58,7 @@ VoiceMuxは、あなたのプライバシーを一番大切にしています。
 
 ## 6. 困ったときは？
 
-*   **popup が「スマホを接続」のまま**: [pair.knc.jp/hub](https://pair.knc.jp/hub) または [VoiceMux Hub](https://hub.knc.jp) をもう一度開き、現在の room を拡張機能へ同期してください。
+*   **popup が「スマホを接続」のまま**: [pair.knc.jp/chrome](https://pair.knc.jp/chrome) をもう一度開き、現在の room を拡張機能へ同期してください。
 *   **文字が入力されない**: パソコンの入力欄を一度クリックして、カーソルがチカチカしている状態にしてください。
 
 ---

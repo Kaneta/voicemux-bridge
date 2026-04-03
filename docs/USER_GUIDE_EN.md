@@ -11,7 +11,7 @@ No complex setup is required. Let's get started!
 
 First, enable the extension.
 
-1.  Open either [pair.knc.jp/hub](https://pair.knc.jp/hub) or [VoiceMux Hub](https://hub.knc.jp) on your PC.
+1.  Open [pair.knc.jp/chrome](https://pair.knc.jp/chrome) on your PC.
 2.  As soon as the first-party pairing surface opens, the current room snapshot is automatically synced to this extension.
 3.  Click the **VoiceMux icon (microphone stand mark)** in the top right of your browser.
 4.  If the popup says **"Connect Phone"**, or if it already says you can use voice input on this PC, you're ready.
@@ -58,7 +58,7 @@ VoiceMux prioritizes your privacy.
 
 ## 6. Troubleshooting
 
-*   **Popup still says "Connect Phone"**: Open [pair.knc.jp/hub](https://pair.knc.jp/hub) or [VoiceMux Hub](https://hub.knc.jp) again so the current room can sync into the extension.
+*   **Popup still says "Connect Phone"**: Open [pair.knc.jp/chrome](https://pair.knc.jp/chrome) again so the current room can sync into the extension.
 *   **Text Not Appearing**: Make sure you've clicked inside a text field on your PC and that the cursor is active.
 
 ---

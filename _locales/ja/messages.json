@@ -3,7 +3,7 @@
     "message": "VoiceMux Bridge"
   },
   "description": {
-    "message": "直接的かつ安全なプッシュ同期とカスタムアダプターを備えた VoiceMux ペアリング"
+    "message": "スマートフォンの音声入力を使い、PCブラウザへ認識済みテキストのみを転送。ChatGPTやGmailなどのWeb画面へスムーズに文字入力できます。"
   },
   "waiting_hub_main": {
     "message": "スマホを接続"
@@ -11,11 +11,8 @@
   "btn_open_pair_surface": {
     "message": "スマホを接続"
   },
-  "btn_manage_librarian": {
-    "message": "VoiceMuxHub を開く"
-  },
-  "btn_reset_connection": {
-    "message": "ルームをリセット"
+  "btn_show_qr": {
+    "message": "スマホ接続を確認"
   },
   "confirm_reset": {
     "message": "この操作を行うと、PCとスマホの接続を解除します。\nこのルームで編集中の下書きは、PC側・スマホ側の両方でクリアされます。\n原稿を残したい場合は、先にコピーし、Spool などに貼り付けて保存してください。"
@@ -33,25 +30,25 @@
     "message": "プライバシー"
   },
   "mobile_ready_title": {
-    "message": "このPC上のWeb入力欄へ、スマホから音声入力できます。"
+    "message": "このPCでスマホ入力を使います"
   },
   "mobile_ready_copy": {
-    "message": "このまま閉じても使えます。校正が必要なときだけ VoiceMuxHub を開いてください。"
-  },
-  "mobile_connected_note": {
     "message": ""
   },
+  "mobile_connected_note": {
+    "message": "問題があれば:\n・そのWebページを再読み込み\n・拡張をもう一度開く\n・QR を再度読む"
+  },
   "mobile_connecting_note": {
-    "message": "スマホ確認中です。すでに使えていれば、そのまま音声入力できます。校正が必要なときだけ VoiceMuxHub を開いてください。"
+    "message": "スマホ確認中です。すでに使えていれば、そのまま音声入力できます。"
   },
   "options_title": {
     "message": "VoiceMux 設定"
   },
   "options_header": {
-    "message": "カスタムサイトアダプター"
+    "message": "個別サイト用の追加設定"
   },
   "options_description": {
-    "message": "お気に入りのサイト用にカスタム CSS セレクターを定義します。作成済みの設定は <a href=\"https://github.com/Kaneta/voicemux-bridge/blob/main/docs/community-adapters.md\" target=\"_blank\">Community Adapters Catalog</a> で確認できます。"
+    "message": "サイトごとに追加の入力設定を保存できます。作成済みの設定は <a href=\"https://github.com/Kaneta/voicemux-bridge/blob/main/docs/community-adapters.md\" target=\"_blank\">個別サイト用の追加設定例</a> で確認できます。"
   },
   "options_operator_header": {
     "message": "オペレーター設定"

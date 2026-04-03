@@ -35,6 +35,20 @@
     "submitSelector": "button.submit-btn"
   },
   {
+    "id": "google",
+    "name": "Google Search",
+    "host": "www.google.com",
+    "inputSelector": "form[action='/search'] input[name='q'], input[aria-label*='Search'], div[role='combobox'] input, input[name='q']",
+    "submitSelector": "form[action='/search'] [type='submit'], div[role='combobox'] button[type='submit'], button[name='btnK'], button[aria-label*='Search'], button[aria-label*='検索']"
+  },
+  {
+    "id": "google-jp",
+    "name": "Google Search (JP)",
+    "host": "www.google.co.jp",
+    "inputSelector": "form[action='/search'] input[name='q'], input[aria-label*='検索'], div[role='combobox'] input, input[name='q']",
+    "submitSelector": "form[action='/search'] [type='submit'], div[role='combobox'] button[type='submit'], button[name='btnK'], button[aria-label*='検索'], button[aria-label*='Search']"
+  },
+  {
     "id": "gmail",
     "name": "Gmail",
     "host": "mail.google.com",
