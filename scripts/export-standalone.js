@@ -29,6 +29,7 @@ const SHARED_PATHS = [
   "STORE_DESCRIPTION_EN.txt",
   "STORE_DESCRIPTION_JA.txt",
   "adapters.json",
+  "background-connection-logic.js",
   "background.js",
   "content.js",
   "docs/CHANGELOG.md",
