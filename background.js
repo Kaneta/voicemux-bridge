@@ -8,6 +8,15 @@
  * using the E2EE key before being dispatched to content scripts.
  */
 
+if (typeof importScripts === "function") {
+	importScripts("./background-connection-logic.js");
+}
+
+const { computeReconnectSchedule, decideSocketCloseRecovery } =
+	globalThis.VoiceMuxBackgroundConnectionLogic;
+const { reduceJoinSuccess, reduceRuntimeWake } =
+	globalThis.VoiceMuxBackgroundConnectionLogic;
+
 const BASE_WS_URL = "wss://v.knc.jp/socket/websocket";
 const MAX_RETRY_DELAY = 30000;
 const MAX_FAILED_CONNECTS_WITHOUT_JOIN = 2;
@@ -632,14 +641,17 @@ async function connect() {
 		}
 
 	if (eventName === "phx_reply" && payload?.status === "ok") {
+			const joinSuccess = reduceJoinSuccess({
+				baseRetryDelay: 1000
+			});
 			appendDebugEvent("join_ok", {
 				roomId: currentRoomId,
 				ref: payload?.response?.ref || null
 			});
 			console.log("VoiceMux: Channel Joined Successfully.");
-			isJoined = true;
-			failedConnectsWithoutJoin = 0;
-			retryDelay = 1000;
+			isJoined = joinSuccess.isJoined;
+			failedConnectsWithoutJoin = joinSuccess.failedConnectsWithoutJoin;
+			retryDelay = joinSuccess.retryDelay;
 			syncDevicePresence();
 			safeSend([JOIN_REF, "2", topic, "device_online", { sender_tab_id: "extension", role: "extension" }]);
 		} else if (eventName === "device_online" && payload.sender_tab_id !== "extension") {
@@ -654,7 +666,7 @@ async function connect() {
 		}
 	};
 
-	socket.onclose = async (event) => {
+socket.onclose = async (event) => {
 		appendDebugEvent("socket_close", {
 			roomId: currentRoomId,
 			code: event.code,
@@ -679,7 +691,14 @@ async function connect() {
 		isJoined = false;
 		remoteDevices.clear();
 		syncDevicePresence();
-		if (!(await hasActiveAuth())) {
+		const closeRecovery = decideSocketCloseRecovery({
+			isPurgingAuth,
+			hasActiveAuth: await hasActiveAuth(),
+			failedConnectsWithoutJoin,
+			maxFailedConnectsWithoutJoin: MAX_FAILED_CONNECTS_WITHOUT_JOIN
+		});
+		failedConnectsWithoutJoin = closeRecovery.nextFailedConnectsWithoutJoin;
+		if (closeRecovery.action === "skip_no_auth") {
 			appendDebugEvent("socket_close_skip_reconnect_no_auth", {
 				roomId: currentRoomId
 			});
@@ -688,12 +707,13 @@ async function connect() {
 			});
 			return;
 		}
-		failedConnectsWithoutJoin += 1;
-		if (failedConnectsWithoutJoin >= MAX_FAILED_CONNECTS_WITHOUT_JOIN) {
+		if (closeRecovery.action === "purge_auth") {
 			purgeStoredAuth("socket_failed_before_join");
 			return;
 		}
-		scheduleReconnect();
+		if (closeRecovery.action === "schedule_reconnect") {
+			scheduleReconnect();
+		}
 	};
 	socket.onerror = (event) => {
 		appendDebugEvent("socket_error", {
@@ -713,23 +733,39 @@ function scheduleReconnect() {
 	if (retryTimer) {
 		clearTimeout(retryTimer);
 	}
+	const reconnectSchedule = computeReconnectSchedule({
+		retryDelay,
+		maxRetryDelay: MAX_RETRY_DELAY
+	});
 	appendDebugEvent("schedule_reconnect", {
 		roomId: currentRoomId,
-		retryDelay
+		retryDelay: reconnectSchedule.scheduledDelay
 	});
 	console.log("VoiceMux: schedule_reconnect", {
 		roomId: currentRoomId,
-		retryDelay
+		retryDelay: reconnectSchedule.scheduledDelay
 	});
 	retryTimer = setTimeout(() => {
 		connect();
-	}, retryDelay);
-	retryDelay = Math.min(retryDelay * 2, MAX_RETRY_DELAY);
+	}, reconnectSchedule.scheduledDelay);
+	retryDelay = reconnectSchedule.nextRetryDelay;
 }
 
 async function hasActiveAuth() {
 	const data = await readActiveAuthSnapshot();
 	return !!(data.voicemux_token && data.voicemux_room_id);
+}
+
+async function handleRuntimeWake(reason) {
+	const wake = reduceRuntimeWake({
+		hasActiveAuth: await hasActiveAuth()
+	});
+	appendDebugEvent("runtime_wake", { reason });
+	if (wake.clearRemotePresence) {
+		remoteDevices.clear();
+		syncDevicePresence();
+	}
+	await connect();
 }
 
 function handleSyncAuth(request, sender, sendResponse) {
@@ -868,10 +904,20 @@ function handleSyncAuth(request, sender, sendResponse) {
 
 chrome.runtime.onMessage.addListener(handleSyncAuth);
 chrome.runtime.onMessageExternal.addListener(handleSyncAuth);
+if (chrome.runtime?.onInstalled?.addListener) {
+	chrome.runtime.onInstalled.addListener((details) => {
+		return handleRuntimeWake(`onInstalled:${details?.reason || "unknown"}`);
+	});
+}
+if (chrome.runtime?.onStartup?.addListener) {
+	chrome.runtime.onStartup.addListener(() => {
+		return handleRuntimeWake("onStartup");
+	});
+}
 chrome.tabs.onRemoved.addListener((tabId) => {
 	if (preferredTabId === tabId) {
 		preferredTabId = null;
 	}
 });
 
-connect();
+void handleRuntimeWake("worker_load");

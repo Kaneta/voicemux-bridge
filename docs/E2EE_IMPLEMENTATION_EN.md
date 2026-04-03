@@ -27,7 +27,7 @@ This is important for transparency:
 
 ## 2. The Extension Stores the Room Snapshot Locally
 
-When the extension receives `SYNC_AUTH`, it stores the room token, room id, key, and trusted Hub origin in `chrome.storage.local`.
+When the extension receives `SYNC_AUTH`, it stores the room token, room id, key, trusted Hub origin, and the trusted pairing origin in `chrome.storage.local`.
 
 Source: [`voicemux-bridge/background.js`](../background.js)
 
@@ -38,7 +38,8 @@ chrome.storage.local.set(
 		voicemux_room_id: data.uuid,
 		voicemux_key: cleanKey,
 		voicemux_mobile_connected: false,
-		voicemux_hub_url: data.hub_url || sender.url
+		voicemux_hub_url: data.hub_url || sender.url,
+		voicemux_pair_origin: pairOrigin
 	},
 	() => {
 		connect();
@@ -51,6 +52,13 @@ This means the extension keeps only the minimum local state required to:
 - reconnect to the relay room
 - decrypt incoming payloads
 - open the correct first-party Hub surface when requested
+- avoid silently reusing auth across different pairing-origin families such as production and staging
+
+Recent recovery updates keep the same normal UX but make the background worker more predictable:
+
+- worker load, `onStartup`, and `onInstalled` normalize stale mobile-presence state before reconnect
+- reconnect / purge / join-success rules are isolated in `background-connection-logic.js`
+- these paths are covered by repo-local regression tests
 
 ## 3. Decryption Happens Inside the Background Worker
 
@@ -77,6 +85,8 @@ return new TextDecoder().decode(decrypted);
 ```
 
 The relay does not see the plaintext at this stage. The key stays local to the client.
+
+VoiceMux Bridge still does not use the `alarms` permission for this recovery behavior.
 
 ## 4. The Content Script Receives Plaintext Only After Local Decryption
 

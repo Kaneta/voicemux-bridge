@@ -91,6 +91,8 @@ function createStorageArea(initialData = {}) {
 function createBackgroundEnvironment(initialStorage = {}) {
   const storage = createStorageArea(initialStorage);
   let onMessageExternal = null;
+  let onInstalled = null;
+  let onStartup = null;
   const sockets = [];
   const timers = [];
   let timerId = 1;
@@ -110,6 +112,16 @@ function createBackgroundEnvironment(initialStorage = {}) {
       onMessageExternal: {
         addListener(listener) {
           onMessageExternal = listener;
+        }
+      },
+      onInstalled: {
+        addListener(listener) {
+          onInstalled = listener;
+        }
+      },
+      onStartup: {
+        addListener(listener) {
+          onStartup = listener;
         }
       },
       lastError: null
@@ -183,6 +195,12 @@ function createBackgroundEnvironment(initialStorage = {}) {
         timers.splice(index, 1);
       }
     },
+    importScripts(...paths) {
+      paths.forEach((relativePath) => {
+        const source = fs.readFileSync(path.join(REPO_ROOT, relativePath), "utf8");
+        vm.runInNewContext(source, context, { filename: relativePath });
+      });
+    },
     atob(input) {
       return Buffer.from(input, "base64").toString("binary");
     },
@@ -202,9 +220,30 @@ function createBackgroundEnvironment(initialStorage = {}) {
         });
       });
     },
+    async runInstalled(reason = "update") {
+      if (!onInstalled) {
+        return false;
+      }
+      await onInstalled({ reason });
+      return true;
+    },
+    async runStartup() {
+      if (!onStartup) {
+        return false;
+      }
+      await onStartup();
+      return true;
+    },
+    async flushAsyncWork() {
+      await Promise.resolve();
+      await Promise.resolve();
+    },
     storage,
     getSockets() {
       return sockets;
+    },
+    getTimerCount() {
+      return timers.length;
     },
     async runNextTimer() {
       const nextTimer = timers.shift();
@@ -216,6 +255,104 @@ function createBackgroundEnvironment(initialStorage = {}) {
     }
   };
 }
+
+test("startup wake clears stale mobile presence even when no auth is stored", async () => {
+  const env = createBackgroundEnvironment({
+    voicemux_mobile_connected: true
+  });
+
+  await env.runStartup();
+  await env.flushAsyncWork();
+
+  assert.equal(env.storage.snapshot().voicemux_mobile_connected, false);
+});
+
+test("runtime startup re-normalizes stored mobile presence", async () => {
+  const env = createBackgroundEnvironment({
+    voicemux_mobile_connected: true
+  });
+
+  env.storage.set({ voicemux_mobile_connected: true });
+  await env.runStartup();
+  await env.flushAsyncWork();
+
+  assert.equal(env.storage.snapshot().voicemux_mobile_connected, false);
+});
+
+test("runtime wake with auth attempts reconnect", async () => {
+  const env = createBackgroundEnvironment({
+    voicemux_room_id: "room-1",
+    voicemux_token: "token-1",
+    voicemux_key: "key-1",
+    voicemux_mobile_connected: true
+  });
+
+  await env.runStartup();
+  await env.flushAsyncWork();
+
+  assert.equal(env.getSockets().length, 2);
+  const latestSocket = env.getSockets()[env.getSockets().length - 1];
+  assert.match(latestSocket.url, /token=token-1/);
+  assert.match(latestSocket.url, /room=room-1/);
+  assert.equal(env.storage.snapshot().voicemux_mobile_connected, false);
+});
+
+test("socket close before join retries once then purges auth", async () => {
+  const env = createBackgroundEnvironment({
+    voicemux_room_id: "room-1",
+    voicemux_token: "token-1",
+    voicemux_key: "key-1"
+  });
+
+  await env.runStartup();
+  await env.flushAsyncWork();
+  const [firstSocket] = env.getSockets();
+  await firstSocket.onclose?.({ code: 1006, wasClean: false, reason: "" });
+  await env.flushAsyncWork();
+
+  assert.equal(env.getTimerCount(), 1);
+  assert.equal(env.storage.snapshot().voicemux_room_id, "room-1");
+
+  await env.runNextTimer();
+  await env.flushAsyncWork();
+  const socketsAfterRetry = env.getSockets();
+  const secondSocket = socketsAfterRetry[socketsAfterRetry.length - 1];
+  await secondSocket.onclose?.({ code: 1006, wasClean: false, reason: "" });
+
+  const snapshot = env.storage.snapshot();
+  assert.equal(snapshot.voicemux_room_id, undefined);
+  assert.equal(snapshot.voicemux_token, undefined);
+  assert.equal(snapshot.voicemux_key, undefined);
+});
+
+test("join success keeps auth and schedules reconnect on later close", async () => {
+  const env = createBackgroundEnvironment({
+    voicemux_room_id: "room-1",
+    voicemux_token: "token-1",
+    voicemux_key: "key-1"
+  });
+
+  await env.runStartup();
+  await env.flushAsyncWork();
+  const [socket] = env.getSockets();
+  socket.readyState = FakeWebSocket.OPEN;
+  socket.onopen?.();
+  socket.onmessage?.({
+    data: JSON.stringify([
+      "1",
+      "1",
+      "room:room-1",
+      "phx_reply",
+      { status: "ok", response: {} }
+    ])
+  });
+
+  await socket.onclose?.({ code: 1006, wasClean: false, reason: "" });
+  await env.flushAsyncWork();
+
+  assert.equal(env.storage.snapshot().voicemux_room_id, "room-1");
+  assert.equal(env.getTimerCount(), 1);
+});
 
 test("SYNC_AUTH stores the sender pair origin and GET_AUTH returns auth for the same origin", async () => {
   const env = createBackgroundEnvironment();

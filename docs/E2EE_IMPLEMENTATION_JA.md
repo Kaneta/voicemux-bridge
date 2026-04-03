@@ -13,6 +13,7 @@ trusted な VoiceMux のファーストパーティ Web surface は、Chrome の
   "matches": [
     "https://hub.knc.jp/*",
     "https://pair.knc.jp/*",
+    "https://staging-pair.knc.jp/*",
     "http://localhost/*"
   ]
 }
@@ -26,7 +27,7 @@ trusted な VoiceMux のファーストパーティ Web surface は、Chrome の
 
 ## 2. 拡張機能は room snapshot をローカル保存する
 
-拡張機能が `SYNC_AUTH` を受けると、room token、room id、鍵、trusted な Hub origin を `chrome.storage.local` に保存します。
+拡張機能が `SYNC_AUTH` を受けると、room token、room id、鍵、trusted な Hub origin、trusted な pairing origin を `chrome.storage.local` に保存します。
 
 出典: [`voicemux-bridge/background.js`](../background.js)
 
@@ -37,7 +38,8 @@ chrome.storage.local.set(
 		voicemux_room_id: data.uuid,
 		voicemux_key: cleanKey,
 		voicemux_mobile_connected: false,
-		voicemux_hub_url: data.hub_url || sender.url
+		voicemux_hub_url: data.hub_url || sender.url,
+		voicemux_pair_origin: pairOrigin
 	},
 	() => {
 		connect();
@@ -50,6 +52,13 @@ chrome.storage.local.set(
 - relay room へ再接続するための資格情報
 - 受信 payload を復号するための鍵
 - 正しいファーストパーティ Hub surface を開くための origin
+- production / staging など異なる pairing origin 間で auth を誤再利用しないための origin 情報
+
+最近の recovery 更新では、通常 UX は変えずに background worker の挙動を安定化しています。
+
+- worker load, `onStartup`, `onInstalled` 時に stale な mobile presence を正規化してから reconnect
+- reconnect / purge / join success の判定は `background-connection-logic.js` に分離
+- これらの経路は repo 内の regression test で固定
 
 ## 3. 復号は background worker の中で行われる
 
@@ -76,6 +85,8 @@ return new TextDecoder().decode(decrypted);
 ```
 
 この時点で relay は平文を見ません。鍵は client のローカルに残ります。
+
+この recovery 動作のために `alarms` permission を追加してはいません。
 
 ## 4. content script はローカル復号後の平文だけを受け取る
 

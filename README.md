@@ -8,6 +8,7 @@ VoiceMux Bridge is a Chrome extension that receives encrypted room traffic, decr
 - Stores synced room/auth state from trusted first-party pairing surfaces.
 - Exposes a minimal popup for pairing, launch, and reset.
 - Treats draft text as room-level state; `CLEAR` should wipe the active page draft without forcing a full room re-pair.
+- Normal text insertion UX is intentionally stable; recent changes focused on hidden recovery after worker wake, relay reconnect, and temporary mobile visibility/offline transitions.
 
 Reset semantics memo: `docs/RESET_ROOM_SPEC_JA.md`
 
@@ -18,6 +19,8 @@ Reset semantics memo: `docs/RESET_ROOM_SPEC_JA.md`
 - The extension accepts `SYNC_AUTH` only from trusted first-party origins declared in `manifest.json`.
 - Trusted staging surfaces must also be declared there when Cloudflare Pages staging is used.
 - The extension stores room credentials in `chrome.storage.local` and performs decryption inside the background service worker before dispatching plaintext to the active tab.
+- The service worker restores relay state on worker load, Chrome startup, and extension install/update without using the `alarms` permission.
+- Reconnect / purge decisions live in `background-connection-logic.js` so recovery rules remain auditable.
 
 The extension does not own QR pairing UX. Trusted first-party VoiceMux web surfaces sync the current room snapshot into the extension, while VoiceMuxHub remains the review/polish surface when needed.
 

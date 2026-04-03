@@ -43,6 +43,7 @@ VoiceMux Bridge の核心は、**「PC側に触れることなく、スマホに
 - **クライアント側のオープンソース化:** 拡張機能のソースコードは GitHub で公開しています。room auth の保存方法、relay traffic の復号、アクティブページへの注入処理を誰でも監査できます。
 - **trusted なファーストパーティ同期のみ:** 拡張機能は `manifest.json` に定義した trusted origin からの `SYNC_AUTH` だけを受け付けます。本番の pairing は `pair.knc.jp`、review/polish 導線は `hub.knc.jp` を使います。
 - **エンドツーエンド暗号化 (E2EE):** relay サーバーが扱うのは暗号化済み payload のみです。復号はサーバーではなく、拡張機能の background worker 内でローカルに行われます。
+- **`alarms` permission は未使用:** worker wake / startup / install-update 後の recovery は、標準の service worker lifecycle とローカル reconnect ルールだけで処理しています。
 - **サーバーに鍵を渡さない仕組み:** スマホとのペアリングに使う暗号鍵は URL のハッシュフラグメント（`#` 以降）で渡されます。ブラウザ仕様によりこの部分はサーバーへ送信されません。
 - **この端末上のローカル保存:** room 資格情報、設定、adapter は `chrome.storage.local` に保存されます。これはこの端末の Chrome プロファイル内に保存されるローカルデータです。拡張機能から閲覧履歴分析や remote code 実行は行いません。
 
