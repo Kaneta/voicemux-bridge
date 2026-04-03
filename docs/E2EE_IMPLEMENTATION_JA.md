@@ -29,20 +29,19 @@ trusted な VoiceMux のファーストパーティ Web surface は、Chrome の
 
 拡張機能が `SYNC_AUTH` を受けると、room token、room id、鍵、trusted な Hub origin、trusted な pairing origin を `chrome.storage.local` に保存します。
 
-出典: [`voicemux-bridge/background.js`](../background.js)
+出典: [`voicemux-bridge/background-runtime-messages.js`](../background-runtime-messages.js), [`voicemux-bridge/background-auth-state.js`](../background-auth-state.js)
 
 ```javascript
-chrome.storage.local.set(
+deps.setStoredAuthSnapshot(
 	{
-		voicemux_token: data.token,
-		voicemux_room_id: data.uuid,
-		voicemux_key: cleanKey,
-		voicemux_mobile_connected: false,
-		voicemux_hub_url: data.hub_url || sender.url,
-		voicemux_pair_origin: pairOrigin
+		uuid: data.uuid,
+		token: data.token,
+		key: cleanKey,
+		hubUrl: data.hub_url || sender?.url,
+		pairOrigin
 	},
 	() => {
-		connect();
+		deps.connect();
 	}
 );
 ```
@@ -64,7 +63,7 @@ chrome.storage.local.set(
 
 relay が送るのは暗号化済み blob です。拡張機能はローカル鍵を読み込み、Web Crypto で復号します。
 
-出典: [`voicemux-bridge/background.js`](../background.js)
+出典: [`voicemux-bridge/background-crypto.js`](../background-crypto.js)
 
 ```javascript
 const data = await chrome.storage.local.get("voicemux_key");

@@ -29,20 +29,19 @@ This is important for transparency:
 
 When the extension receives `SYNC_AUTH`, it stores the room token, room id, key, trusted Hub origin, and the trusted pairing origin in `chrome.storage.local`.
 
-Source: [`voicemux-bridge/background.js`](../background.js)
+Source: [`voicemux-bridge/background-runtime-messages.js`](../background-runtime-messages.js), [`voicemux-bridge/background-auth-state.js`](../background-auth-state.js)
 
 ```javascript
-chrome.storage.local.set(
+deps.setStoredAuthSnapshot(
 	{
-		voicemux_token: data.token,
-		voicemux_room_id: data.uuid,
-		voicemux_key: cleanKey,
-		voicemux_mobile_connected: false,
-		voicemux_hub_url: data.hub_url || sender.url,
-		voicemux_pair_origin: pairOrigin
+		uuid: data.uuid,
+		token: data.token,
+		key: cleanKey,
+		hubUrl: data.hub_url || sender?.url,
+		pairOrigin
 	},
 	() => {
-		connect();
+		deps.connect();
 	}
 );
 ```
@@ -64,7 +63,7 @@ Recent recovery updates keep the same normal UX but make the background worker m
 
 The relay sends encrypted blobs. The extension imports the local key and decrypts the payload with Web Crypto.
 
-Source: [`voicemux-bridge/background.js`](../background.js)
+Source: [`voicemux-bridge/background-crypto.js`](../background-crypto.js)
 
 ```javascript
 const data = await chrome.storage.local.get("voicemux_key");

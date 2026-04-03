@@ -1,6 +1,6 @@
 {
   "name": "voicemux-bridge",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "description": "VoiceMux Bridge は、スマートフォンの音声入力を PC 上のあらゆるウェブサイト（ChatGPT, Gmail, Slack 等）にリアルタイムで挿入するブラウザ拡張機能です。",
   "main": "background.js",
   "directories": {
@@ -10,6 +10,7 @@
     "export:standalone": "node scripts/export-standalone.js",
     "lint": "eslint .",
     "lint:ai": "eslint .",
+    "screenshot:store": "node scripts/capture-store-popup-screenshots.mjs",
     "test": "node --test",
     "test:e2e": "node --test tests/*.test.js"
   },

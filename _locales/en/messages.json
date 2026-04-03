@@ -1,9 +1,15 @@
 {
   "name": {
+    "message": "VoiceMux Bridge - Smartphone Voice Typing for PC (Speech-to-Text)"
+  },
+  "short_name": {
+    "message": "VoiceMux Bridge"
+  },
+  "popup_brand": {
     "message": "VoiceMux Bridge"
   },
   "description": {
-    "message": "Send recognized text from phone to PC browser. Text only, not audio. Fast, secure voice typing for ChatGPT, Gmail, and more."
+    "message": "Use your smartphone's voice typing (speech-to-text) on your PC browser. Speak on your phone and enter text on websites."
   },
   "waiting_hub_main": {
     "message": "Connect your phone"

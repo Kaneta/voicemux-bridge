@@ -1,6 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_name__",
+  "short_name": "__MSG_short_name__",
   "version": "2.2.2",
   "version_name": "2.2.2 (build 2.56.58.25)",
   "description": "__MSG_description__",
