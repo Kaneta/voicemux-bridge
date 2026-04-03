@@ -60,6 +60,7 @@ const SHARED_PATHS = [
   "popup.html",
   "popup.js",
   "scripts/export-standalone.js",
+  "scripts/release-standalone.js",
   "tests"
 ];
 

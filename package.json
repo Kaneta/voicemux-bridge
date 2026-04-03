@@ -10,6 +10,7 @@
     "export:standalone": "node scripts/export-standalone.js",
     "lint": "eslint .",
     "lint:ai": "eslint .",
+    "release:standalone": "node scripts/release-standalone.js",
     "screenshot:store": "node scripts/capture-store-popup-screenshots.mjs",
     "test": "node --test",
     "test:e2e": "node --test tests/*.test.js"
